@@ -1,0 +1,31 @@
+(library
+  (name drm)
+  (public_name libdrm)
+  (libraries ctypes ctypes.foreign fmt)
+  (foreign_stubs
+    (language c)
+    (names stubs))
+  (c_library_flags (:include c_library_flags.sexp))
+  (ctypes
+    (external_library_name libdrm)
+    (build_flags_resolver
+      ; Unlike dune-configurator, dune's cstubs support doesn't work with pkgconf,
+      ; so get the flags via configurator instead:
+      (vendored
+        (c_flags (:include c_flags.sexp))
+        (c_library_flags (:include c_library_flags.sexp))))
+    (headers (include "linux/dma-buf.h" "fcntl.h" "xf86drm.h" "xf86drmMode.h"))
+    (type_description
+      (instance Types)
+      (functor Type_description))
+    (function_description
+      (concurrency unlocked)
+      (instance Functions)
+      (errno_policy return_errno)
+      (functor Function_description))
+    (generated_types Types_generated)
+    (generated_entry_point C)))
+
+(rule
+  (targets c_flags.sexp c_library_flags.sexp config.ml)
+  (action (run ./config/discover.exe)))

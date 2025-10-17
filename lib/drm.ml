@@ -1,0 +1,12 @@
+module Device = Device
+module Cap = Cap
+module Client_cap = Client_cap
+module Id = Id
+module Buffer = Buffer
+module Kms = Kms
+module Fourcc = Fourcc
+module Modifier = Modifier
+module Dev_t = Dev_t
+module Dmabuf = Dmabuf
+
+let get_devices = Device.Info.get_devices

@@ -1,0 +1,3 @@
+(executables
+ (names nonatomic atomic)
+ (libraries drm))
