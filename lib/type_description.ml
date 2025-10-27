@@ -555,7 +555,7 @@ module Types (F : TYPE) = struct
     let dumb_prefer_shadow = bool "DRM_CAP_DUMB_PREFER_SHADOW"
     let prime = int "DRM_CAP_PRIME"
     let timestamp_monotonic = bool "DRM_CAP_TIMESTAMP_MONOTONIC"
-    let async_page_flip = bool "DRM_CAP_ASYNC_PAGE_FLIP"
+    let async_page_flip = Bool, Unsigned.UInt64.of_int 0x7  (* bool "DRM_CAP_ASYNC_PAGE_FLIP" -- Debian 12 too old *)
     let cursor_width = int "DRM_CAP_CURSOR_WIDTH"
     let cursor_height = int "DRM_CAP_CURSOR_HEIGHT"
     let addfb2_modifiers = bool "DRM_CAP_ADDFB2_MODIFIERS"
@@ -563,7 +563,7 @@ module Types (F : TYPE) = struct
     let crtc_in_vblank_event = bool "DRM_CAP_CRTC_IN_VBLANK_EVENT"
     let syncobj = bool "DRM_CAP_SYNCOBJ"
     let syncobj_timeline = bool "DRM_CAP_SYNCOBJ_TIMELINE"
-    let atomic_async_page_flip = bool "DRM_CAP_ATOMIC_ASYNC_PAGE_FLIP"
+    let atomic_async_page_flip = Bool, Unsigned.UInt64.of_int 0x15  (* bool "DRM_CAP_ATOMIC_ASYNC_PAGE_FLIP" *)
   end
 
   module Client_cap = struct
@@ -575,7 +575,10 @@ module Types (F : TYPE) = struct
     let atomic = constant "DRM_CLIENT_CAP_ATOMIC" F.uint64_t
     let aspect_ratio = constant "DRM_CLIENT_CAP_ASPECT_RATIO" F.uint64_t
     let writeback_connectors = constant "DRM_CLIENT_CAP_WRITEBACK_CONNECTORS" F.uint64_t
-    let cursor_plane_hotspot = constant "DRM_CLIENT_CAP_CURSOR_PLANE_HOTSPOT" F.uint64_t
+
+    (* Debian 12 didn't have this, so just hard-code it for now *)
+    let cursor_plane_hotspot = Unsigned.UInt64.of_int 6
+    (* let cursor_plane_hotspot = constant "DRM_CLIENT_CAP_CURSOR_PLANE_HOTSPOT" F.uint64_t *)
   end
 
   module DrmModeFB2 = struct

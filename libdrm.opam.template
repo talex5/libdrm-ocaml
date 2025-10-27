@@ -1,0 +1,7 @@
+depexts: [
+  [ "libdrm-dev" ] {os-family = "alpine"}
+  [ "libdrm-dev" ] {os-family = "debian"}
+  [ "libdrm-devel" ] {os-family = "fedora"}
+  [ "libdrm-devel" ] {os-family = "suse" | os-family = "opensuse"}
+]
+available: [ os = "linux" & arch != "arm32" & arch != "x86_32" ]

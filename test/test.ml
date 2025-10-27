@@ -47,42 +47,45 @@ let test_sync_file dmabuf_fd =
   Unix.close sync_fd
 
 let () =
-  let devices = Drm.get_devices ~get_pci_revision:true () in
-  println "@[<v2>devices:@,%a@]" (Fmt.Dump.list Drm.Device.Info.pp) devices;
-  match List.find_map open_device devices with
-  | None -> println "No suitable device found; skipping tests"
-  | Some dev ->
-    begin
-      match Drm.Client_cap.(set atomic) dev true with
-      | Ok () -> ()
-      | Error code -> println "Atomic mode-setting not supported: %s" (Unix.error_message code)
-    end;
-    Drm.Client_cap.(set_exn universal_planes) dev true;
-    let mode_res = Kms.Resources.get dev in
-    println "Resources: %a" Kms.Resources.pp mode_res;
-    let encoders = List.map (Kms.Encoder.get dev) mode_res.encoders in
-    println "@[<v2>Encoders:@,%a@]" (Fmt.Dump.list pp_encoder) encoders;
-    let connectors = List.map (Kms.Connector.get dev) mode_res.connectors in
-    println "@[<v2>Connectors:@,%a@]" (Fmt.Dump.list (pp_connector dev)) connectors;
-    let planes = Kms.Plane_resources.get dev |> List.map (Kms.Plane.get dev) in
-    println "@[<v2>Planes:@,%a@]" (Fmt.Dump.list (pp_plane dev)) planes;
-    let crtcs = List.map (Kms.Crtc.get dev) mode_res.crtcs in
-    println "@[<v2>CRTCs:@,%a@]" (Fmt.Dump.list pp_crtc) crtcs;
-    let cw = Drm.Cap.(get_exn cursor_width) dev in
-    let ch = Drm.Cap.(get_exn cursor_height) dev in
-    println "Suggested cursor size: %dx%d" cw ch;
+  match Drm.get_devices ~get_pci_revision:true () with
+  | exception Unix.Unix_error (ENOENT, _, _) ->
+    println "DRM not supported on this platform; skipping tests"
+  | devices ->
+    println "@[<v2>devices:@,%a@]" (Fmt.Dump.list Drm.Device.Info.pp) devices;
+    match List.find_map open_device devices with
+    | None -> println "No suitable device found; skipping tests"
+    | Some dev ->
+      begin
+        match Drm.Client_cap.(set atomic) dev true with
+        | Ok () -> ()
+        | Error code -> println "Atomic mode-setting not supported: %s" (Unix.error_message code)
+      end;
+      Drm.Client_cap.(set_exn universal_planes) dev true;
+      let mode_res = Kms.Resources.get dev in
+      println "Resources: %a" Kms.Resources.pp mode_res;
+      let encoders = List.map (Kms.Encoder.get dev) mode_res.encoders in
+      println "@[<v2>Encoders:@,%a@]" (Fmt.Dump.list pp_encoder) encoders;
+      let connectors = List.map (Kms.Connector.get dev) mode_res.connectors in
+      println "@[<v2>Connectors:@,%a@]" (Fmt.Dump.list (pp_connector dev)) connectors;
+      let planes = Kms.Plane_resources.get dev |> List.map (Kms.Plane.get dev) in
+      println "@[<v2>Planes:@,%a@]" (Fmt.Dump.list (pp_plane dev)) planes;
+      let crtcs = List.map (Kms.Crtc.get dev) mode_res.crtcs in
+      println "@[<v2>CRTCs:@,%a@]" (Fmt.Dump.list pp_crtc) crtcs;
+      let cw = Drm.Cap.(get_exn cursor_width) dev in
+      let ch = Drm.Cap.(get_exn cursor_height) dev in
+      println "Suggested cursor size: %dx%d" cw ch;
 
-    let dumb_buffer = Drm.Buffer.Dumb.create dev ~bpp:32 ~size:(640, 480) in
-    println "Dumb buffer handle = %d" (dumb_buffer.handle :> int);
-    let plane = { Kms.Fb.Plane.handle = dumb_buffer.handle; pitch = dumb_buffer.pitch; offset = 0 } in
-    let fb_id = Kms.Fb.add dev ~size:(640, 480) ~planes:[plane] ~pixel_format:Drm.Fourcc.xr24 in
-    let fb = Kms.Fb.get dev fb_id in
-    println "Framebuffer: %a" Kms.Fb.pp fb;
-    Kms.Fb.close_plane_handles dev fb;
-    let prime_fd = Drm.Dmabuf.of_handle ~rw:false dev dumb_buffer.handle in
-    test_sync_file prime_fd;
-    let imported_handle = Drm.Dmabuf.to_handle dev prime_fd in
-    assert (imported_handle == dumb_buffer.handle);
-    Unix.close prime_fd;
-    Kms.Fb.rm dev fb_id;
-    Drm.Buffer.close dev dumb_buffer.handle
+      let dumb_buffer = Drm.Buffer.Dumb.create dev ~bpp:32 ~size:(640, 480) in
+      println "Dumb buffer handle = %d" (dumb_buffer.handle :> int);
+      let plane = { Kms.Fb.Plane.handle = dumb_buffer.handle; pitch = dumb_buffer.pitch; offset = 0 } in
+      let fb_id = Kms.Fb.add dev ~size:(640, 480) ~planes:[plane] ~pixel_format:Drm.Fourcc.xr24 in
+      let fb = Kms.Fb.get dev fb_id in
+      println "Framebuffer: %a" Kms.Fb.pp fb;
+      Kms.Fb.close_plane_handles dev fb;
+      let prime_fd = Drm.Dmabuf.of_handle ~rw:false dev dumb_buffer.handle in
+      test_sync_file prime_fd;
+      let imported_handle = Drm.Dmabuf.to_handle dev prime_fd in
+      assert (imported_handle == dumb_buffer.handle);
+      Unix.close prime_fd;
+      Kms.Fb.rm dev fb_id;
+      Drm.Buffer.close dev dumb_buffer.handle

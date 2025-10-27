@@ -12,8 +12,8 @@
       ; Unlike dune-configurator, dune's cstubs support doesn't work with pkgconf,
       ; so get the flags via configurator instead:
       (vendored
-        (c_flags (:include c_flags.sexp))
-        (c_library_flags (:include c_library_flags.sexp))))
+        (c_flags :standard (:include c_flags.sexp))
+        (c_library_flags :standard (:include c_library_flags.sexp))))
     (headers (include "linux/dma-buf.h" "fcntl.h" "xf86drm.h" "xf86drmMode.h"))
     (type_description
       (instance Types)

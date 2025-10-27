@@ -15,7 +15,7 @@
  (synopsis "OCaml bindings for libdrm")
  (description "Allows configuring displays and using GPU devices")
  (depends
-  (ocaml (>= 5.2.0))
+  (ocaml (>= 5.3.0))
   (ctypes (>= 0.23.0))
   (ctypes-foreign (>= 0.23.0))
   (fmt (>= 0.8.9))))
