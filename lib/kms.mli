@@ -108,7 +108,7 @@ module Mode_info : sig
 
   val vrefresh : t -> float
 
-  val pp : t Fmt.t
+  val pp : t Fmt.t [@@ocaml.toplevel_printer]
 
   val pp_summary : t Fmt.t
   (** e.g. "3840x2160 60.00Hz" *)
