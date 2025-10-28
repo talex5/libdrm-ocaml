@@ -32,7 +32,7 @@ module Functions (F : FOREIGN) = struct
   let drmModeGetConnector = foreign "drmModeGetConnector" (fd @-> connector_id @-> returning (ptr_opt DrmModeConnector.t))
   let drmModeFreeConnector = foreign "drmModeFreeConnector" (ptr DrmModeConnector.t @-> returning void)
 
-  let drmModeGetConnectorTypeName = foreign "drmModeGetConnectorTypeName" (DrmModeConnectorType.t @-> returning (ptr_opt char))
+  let drmModeGetConnectorTypeName = foreign "drmModeGetConnectorTypeName" (DrmModeConnectorType.t @-> returning (ptr_opt (const char)))
 
   let drmModeGetEncoder = foreign "drmModeGetEncoder" (fd @-> encoder_id @-> returning (ptr_opt DrmModeEncoder.t))
   let drmModeFreeEncoder = foreign "drmModeFreeEncoder" (ptr DrmModeEncoder.t @-> returning void)
