@@ -24,6 +24,15 @@ module type BITSET = sig
   val pp : t Fmt.t [@@ocaml.toplevel_printer]
 end
 
+module Rect : sig
+  type t = {
+    x1 : int; y1 : int;
+    x2 : int; y2 : int;
+  }
+
+  val pp : Format.formatter -> t -> unit
+end
+
 module Mode_info : sig
   (** Screen mode resolution and timing information. *)
 
@@ -184,6 +193,9 @@ module Property : sig
 
       This is useful if you need a property that isn't pre-defined. *)
 
+  val create_id : string -> (_, _ Id.t) t
+  (** [create_id name] is a property whose value is an object ID. *)
+
   val create_id_opt : string -> (_, (_ Id.t option)) t
   (** [create_id_opt name] is a property whose value is an optional ID. *)
 
@@ -253,8 +265,13 @@ module Connector : sig
   (** A physical connector used to attach a monitor. *)
 
   module Connection : sig
+    (** User-space should first try to enable [Connected] connectors and
+        ignore other connectors. If there are no [Connected] connectors,
+        user-space should then try to probe and enable [Unknown_connection]
+        connectors. *)
+
     type t =
-      | Connected
+      | Connected               (** The connector has a sink plugged in *)
       | Disconnected
       | Unknown_connection
 
@@ -308,6 +325,17 @@ module Connector : sig
   }
 
   val get : Device.t -> id -> t
+  (** Retrieve all information about the connector. This will do
+      a forced probe on the connector to retrieve remote information such as
+      EDIDs from the display device. *)
+
+  val get_current : Device.t -> id -> t
+  (** Retrieve current information, i.e the currently active mode and
+      encoder, about the connector. This will not do any probing on the
+      connector or remote device, and only reports what is currently known.
+      For the complete set of modes and encoders associated with the connector
+      use {!get} which will do a probe to determine any display link changes
+      first. *)
 
   val id : t -> id
 
@@ -372,6 +400,13 @@ module Fb : sig
     planes:Buffer.id Plane.t list ->
     id
 
+  val dirty : Device.t -> id -> Rect.t list -> unit
+  (** Flush out the damaged area supplied as a clip rectangle list.
+
+      Code that does frontbuffer rendering must call this to flush out the
+      changes on manual-update display outputs, e.g. usb display-link, mipi
+      manual update panels or edp panel self refresh modes. *)
+
   val close_plane_handles : Device.t -> t -> unit
   (** Close each unique GEM handle in {!t.planes}. *)
 
@@ -381,6 +416,19 @@ module Fb : sig
       Warning: removing a framebuffer currently in-use on an enabled plane will
       disable that plane. The CRTC the plane is linked to may also be disabled
       (depending on driver capabilities). *)
+
+  val close : Device.t -> id -> unit
+  (** Like {!rm}, except it doesn't disable planes and CRTCs. As long as the
+      framebuffer is used by a plane, it's kept alive. When the plane no longer
+      uses the framebuffer (because the framebuffer is replaced with another
+      one, or the plane is disabled), the framebuffer is cleaned up.
+
+      This is useful to implement flicker-free transitions between two
+      processes.
+
+      Depending on the threat model, user-space may want to ensure that the
+      framebuffer doesn’t expose any sensitive user information: closed
+      framebuffers attached to a plane can be read back by the next DRM master. *)
 
   val pp : t Fmt.t [@@ocaml.toplevel_printer]
 end
@@ -396,12 +444,12 @@ module Crtc : sig
   type t = {
     crtc_id : id;
     buffer_id : Fb.id option;
-    x : int;
+    x : int;            (** Position on the framebuffer *)
     y : int;
     width : int;
     height : int;
     mode : Mode_info.t option;
-    gamma_size : int;
+    gamma_size : int;   (** Number of gamma stops *)
   }
 
   val get : Device.t -> id -> t
@@ -413,7 +461,7 @@ module Crtc : sig
 
   val page_flip : ?event:bool -> Device.t -> id -> user_data:unit Ctypes_static.ptr -> Fb.id -> unit
 
-  val set_cursor : Device.t -> id -> Buffer.id option -> size:(int * int) -> unit
+  val set_cursor : Device.t -> id -> ?hot:(int * int) -> size:(int * int) -> Buffer.id option -> unit
   val move_cursor : Device.t -> id -> int * int -> unit
 
   val pp : t Fmt.t [@@ocaml.toplevel_printer]
@@ -455,6 +503,7 @@ module Plane : sig
   val typ : [`Cursor | `Overlay | `Primary | `Unknown of Property.raw_value] property
   val fb_id : [`Fb] Id.t option property
   val crtc_id : [`Crtc] Id.t option property
+  val in_formats : Device.t -> (Fourcc.t * Modifier.t) list property
 end
 
 module Encoder : sig

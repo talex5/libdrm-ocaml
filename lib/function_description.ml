@@ -30,6 +30,7 @@ module Functions (F : FOREIGN) = struct
   let drmModeFreeCrtc = foreign "drmModeFreeCrtc" (ptr DrmModeCrtc.t @-> returning void)
 
   let drmModeGetConnector = foreign "drmModeGetConnector" (fd @-> connector_id @-> returning (ptr_opt DrmModeConnector.t))
+  let drmModeGetConnectorCurrent = foreign "drmModeGetConnectorCurrent" (fd @-> connector_id @-> returning (ptr_opt DrmModeConnector.t))
   let drmModeFreeConnector = foreign "drmModeFreeConnector" (ptr DrmModeConnector.t @-> returning void)
 
   let drmModeGetConnectorTypeName = foreign "drmModeGetConnectorTypeName" (DrmModeConnectorType.t @-> returning (ptr_opt (const char)))
@@ -66,7 +67,10 @@ module Functions (F : FOREIGN) = struct
        ptr buffer_id @-> ptr pitch @-> ptr offset @-> ptr drm_modifier @->
        ptr fb_id @-> flags32 @-> returning int)
 
+  let drmModeDirtyFB = foreign "drmModeDirtyFB" (fd @-> fb_id @-> ptr Drm_clip_rect.t @-> int_uint32 @-> returning int)
+
   let drmModeRmFB = foreign "drmModeRmFB" (fd @-> fb_id @-> returning int)
+  let drmModeCloseFB = foreign "drmModeCloseFB" (fd @-> fb_id @-> returning int)
 
   let drmModeGetFB2 = foreign "drmModeGetFB2" (fd @-> fb_id @-> returning (ptr_opt DrmModeFB2.t))
   let drmModeFreeFB2 = foreign "drmModeFreeFB2" (ptr DrmModeFB2.t @-> returning void)
@@ -80,7 +84,11 @@ module Functions (F : FOREIGN) = struct
   let drmModeMapDumbBuffer = foreign "drmModeMapDumbBuffer" (fd @-> buffer_id @-> ptr uint64_t @-> returning int)
 
   let drmModeSetCursor = foreign "drmModeSetCursor" (fd @-> crtc_id @-> buffer_id_opt @-> dim @-> dim @-> returning int)
+  let drmModeSetCursor2 = foreign "drmModeSetCursor2" (fd @-> crtc_id @-> buffer_id_opt @-> dim @-> dim @-> dim @-> dim @-> returning int)
   let drmModeMoveCursor = foreign "drmModeMoveCursor" (fd @-> crtc_id @-> dim @-> dim @-> returning int)
+
+  let drmModeFormatModifierBlobIterNext = foreign "drmModeFormatModifierBlobIterNext"
+      (ptr (const DrmModePropertyBlob.t) @-> ptr DrmModeFormatModifierIterator.t @-> returning bool)
 
   (* Atomic KMS *)
 

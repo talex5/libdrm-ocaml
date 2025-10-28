@@ -26,13 +26,20 @@ let pp_encoder f (x : Kms.Encoder.t) =
   Fmt.pf f "@[<h>%d (%a) {crtc_id = %a;@ possible_crtcs = %#x;@ possible_clones = %#x}@]"
     (x.encoder_id :> int) Kms.Encoder.Type.pp x.encoder_type (Fmt.Dump.option Drm.Id.pp) x.crtc_id x.possible_crtcs x.possible_clones
 
+let pp_format f (fmt, modifier) =
+  Fmt.pf f "%a:%a"
+    Drm.Fourcc.pp fmt
+    Drm.Modifier.pp modifier
+
 let pp_plane fd f (x : Kms.Plane.t) =
   if x.crtc_id = None then Fmt.pf f "%d (unused)" (x.plane_id :> int)
   else (
     let props = Kms.Plane.get_properties fd x.plane_id in
-    Fmt.pf f "%a@,%a"
+    let in_formats = Kms.Properties.get_value props (Kms.Plane.in_formats fd) in
+    Fmt.pf f "%a@,%a@,IN_FORMATS: %a"
       Kms.Plane.pp x
       Kms.Properties.pp props
+      (Fmt.Dump.option (Fmt.Dump.list pp_format)) in_formats;
   )
 
 let pp_crtc f (x : Kms.Crtc.t) =

@@ -67,6 +67,32 @@ module Bitset = struct
     )
 end
 
+module Rect = struct
+  module T = CT.Drm_clip_rect
+
+  type t = {
+    x1 : int; y1 : int;
+    x2 : int; y2 : int;
+  }
+
+  let _of_c c = {
+    x1 = Ctypes.getf c T.x1;
+    y1 = Ctypes.getf c T.y1;
+    x2 = Ctypes.getf c T.x2;
+    y2 = Ctypes.getf c T.y2;
+  }
+
+  let write { x1; y1; x2; y2 } c =
+    Ctypes.setf c T.x1 x1;
+    Ctypes.setf c T.y1 y1;
+    Ctypes.setf c T.x2 x2;
+    Ctypes.setf c T.y2 y2
+
+  let pp f t =
+    Fmt.pf f "{@[<hv>x1,y1 = %d,%d;@ x2,y2 = %d,%d@]}"
+      t.x1 t.y1 t.x2 t.y2
+end
+
 module Mode_info = struct
   open CT.DrmModeModeInfo
 
@@ -258,13 +284,11 @@ module Mode_info = struct
       name = string_of_carray (Ctypes.getf c name);
     }
 
-  let to_c t =
+  let write t c =
     let module T = CT.DrmModeModeInfo in
     let { clock; hdisplay; hsync_start; hsync_end; htotal; hskew; vdisplay;
           vsync_start; vsync_end; vtotal; vscan; vrefresh; flags; stereo_mode; aspect_ratio; typ; name } = t in
-    let ptr = Ctypes.allocate_n T.t ~count:1 in
     let ( ++ ) = U32.logor in
-    let c = !@ ptr in
     Ctypes.setf c T.clock clock;
     Ctypes.setf c T.hdisplay hdisplay;
     Ctypes.setf c T.hsync_start hsync_start;
@@ -279,7 +303,11 @@ module Mode_info = struct
     Ctypes.setf c T.vrefresh vrefresh;
     Ctypes.setf c T.flags (flags ++ Stereo_mode.to_c stereo_mode ++ Aspect_ratio.to_c aspect_ratio);
     Ctypes.setf c T.typ typ;
-    Ctypes.setf c T.name (Ctypes.CArray.of_string name);
+    Ctypes.setf c T.name (Ctypes.CArray.of_string name)
+
+  let to_c t =
+    let ptr = Ctypes.allocate_n CT.DrmModeModeInfo.t ~count:1 in
+    write t (!@ ptr);
     ptr
 
   let vrefresh t =
@@ -490,6 +518,9 @@ module Property = struct
 
   let create ~read ~write name =
     { name; read; write }
+
+  let create_id name =
+    create ~read:(fun _ -> Id.of_uint64) ~write:(fun _ -> Id.to_uint64) name
 
   let create_id_opt name =
     create ~read:(fun _ -> Id.of_uint64_opt) ~write:(fun _ -> Id.to_uint64_opt) name
@@ -717,10 +748,18 @@ module Crtc = struct
     | 0, _ -> ()
     | _, errno -> Err.report errno "drmModePageFlip" ""
 
-  let set_cursor fd id handle ~size:(width, height) =
-    match C.Functions.drmModeSetCursor fd id handle width height with
-    | 0, _ -> ()
-    | _, errno -> Err.report errno "drmModeSetCursor" ""
+  let set_cursor fd id ?hot ~size:(width, height) handle =
+    match hot with
+    | None ->
+      begin match C.Functions.drmModeSetCursor fd id handle width height with
+        | 0, _ -> ()
+        | _, errno -> Err.report errno "drmModeSetCursor" ""
+      end
+    | Some (hot_x, hot_y) ->
+      begin match C.Functions.drmModeSetCursor2 fd id handle width height hot_x hot_y with
+        | 0, _ -> ()
+        | _, errno -> Err.report errno "drmModeSetCursor2" ""
+      end
 
   let move_cursor fd id (x, y) =
     match C.Functions.drmModeMoveCursor fd id x y with
@@ -989,6 +1028,14 @@ module Connector = struct
       C.Functions.drmModeFreeConnector c |> Err.ignore;
       x
 
+  let get_current fd id =
+    match C.Functions.drmModeGetConnectorCurrent fd id with
+    | None, errno -> Err.report errno "drmModeGetConnectorCurrent" ""
+    | Some c, _ ->
+      let x = of_c (!@ c) in
+      C.Functions.drmModeFreeConnector c |> Err.ignore;
+      x
+
   let get_properties dev = Properties.get dev Connector
   let crtc_id = Property.create_id_opt "CRTC_ID"
 end
@@ -1054,6 +1101,29 @@ module Plane = struct
     ]
 
   let crtc_id = Property.create_id_opt "CRTC_ID"
+
+  let get_in_formats dev blob_id =
+    match C.Functions.drmModeGetPropertyBlob dev blob_id with
+    | None, errno -> Err.report errno "drmModeGetPropertyBlob" "IN_FORMATS"
+    | Some blob, _ ->
+      let finally () = C.Functions.drmModeFreePropertyBlob blob |> Err.ignore in
+      Fun.protect ~finally @@ fun () ->
+      let module I = CT.DrmModeFormatModifierIterator in
+      let iter = Ctypes.allocate_n I.t ~count:1 in
+      let rec aux () =
+        let ok = C.Functions.drmModeFormatModifierBlobIterNext blob iter |> Err.ignore in
+        if ok then (
+          let fmt = Ctypes.getf (!@ iter) I.fmt in
+          let modifier = Ctypes.getf (!@ iter) I.modifier in
+          (fmt, modifier) :: aux ()
+        ) else []
+      in
+      aux ()
+
+  let in_formats dev =
+    Property.create "IN_FORMATS"
+      ~write:(fun _ _ -> failwith "IN_FORMATS is read-only")
+      ~read:(fun _ blob_id -> get_in_formats dev (Id.of_uint64 blob_id))
 
   let get_properties dev = Properties.get dev Plane
 end
@@ -1171,10 +1241,24 @@ module Fb = struct
     |> List.sort_uniq compare
     |> List.iter (Buffer.close dev)
 
+  let dirty fd id clips =
+    let c_clips = Ctypes.(CArray.make CT.Drm_clip_rect.t (List.length clips)) in
+    clips |> List.iteri (fun i rect ->
+        Rect.write rect (Ctypes.CArray.get c_clips i)
+      );
+    match C.Functions.drmModeDirtyFB fd id c_clips.astart c_clips.alength with
+    | 0, _ -> ()
+    | _, errno -> Err.report errno "drmModeDirtyFB" ""
+
   let rm fd id =
     match C.Functions.drmModeRmFB fd id with
     | 0, _ -> ()
     | _, errno -> Err.report errno "drmModeRmFB" ""
+
+  let close fd id =
+    match C.Functions.drmModeCloseFB fd id with
+    | 0, _ -> ()
+    | _, errno -> Err.report errno "drmModeCloseFB" ""
 end
 
 module Atomic_req = struct

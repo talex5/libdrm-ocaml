@@ -32,6 +32,7 @@ module Types (F : TYPE) = struct
 
   let int_uint8 = view ~read:Unsigned.UInt8.to_int ~write:Unsigned.UInt8.of_int uint8_t
   let int_uint16 = view ~read:Unsigned.UInt16.to_int ~write:Unsigned.UInt16.of_int uint16_t
+  let int_ushort = view ~read:Unsigned.UShort.to_int ~write:Unsigned.UShort.of_int ushort
 
   (* On 64-bit systems, we can always represent 32-bit C ints as plain OCaml ints.
      On 32-bit systems, most values should also fit in a 31-bit OCaml int. *)
@@ -544,6 +545,18 @@ module Types (F : TYPE) = struct
     let () = F.seal t
   end
 
+  module DrmModeFormatModifierIterator = struct
+    type mark
+    type ctype = mark Ctypes.structure
+    let t : ctype F.typ = F.structure "_drmModeFormatModifierIterator"
+
+    let fmt_idx = F.field t "fmt_idx" uint32_t
+    let mod_idx = F.field t "mod_idx" uint32_t
+    let fmt = F.field t "fmt" drm_format
+    let modifier = F.field t "mod" drm_modifier
+    let () = F.seal t
+  end
+
   module Cap = struct
     type 'a ty = Int : int ty | Bool : bool ty
     type 'a t = 'a ty * Unsigned.UInt64.t
@@ -633,6 +646,18 @@ module Types (F : TYPE) = struct
 
     let flags = F.field t "flags" uint32_t
     let fd = F.field t "fd" fd
+    let () = F.seal t
+  end
+
+  module Drm_clip_rect = struct
+    type mark
+    type ctype = mark Ctypes.structure
+    let t : ctype F.typ = F.structure "drm_clip_rect"
+
+    let x1 = F.field t "x1" int_ushort
+    let y1 = F.field t "y1" int_ushort
+    let x2 = F.field t "x2" int_ushort
+    let y2 = F.field t "y2" int_ushort
     let () = F.seal t
   end
 end
