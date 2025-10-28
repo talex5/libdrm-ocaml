@@ -286,6 +286,9 @@ module Connector : sig
       | USB
 
     val pp : t Fmt.t
+
+    val name : t -> string
+    (** A short name for users. e.g. [DisplayPort] is "DP" *)
   end
 
   type id = [`Connector] Id.t
@@ -307,7 +310,10 @@ module Connector : sig
   val get : Device.t -> id -> t
 
   val pp_modes : Mode_info.t list Fmt.t [@@ocaml.toplevel_printer]
+
   val pp_name : t Fmt.t
+  (** e.g. "DP-1" *)
+
   val pp : t Fmt.t [@@ocaml.toplevel_printer]
 
   (** {2 Properties} *)

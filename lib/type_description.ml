@@ -369,6 +369,8 @@ module Types (F : TYPE) = struct
   end
 
   module DrmModeConnectorType = struct
+    let t = uint32_t
+
     let v_Unknown = constant "DRM_MODE_CONNECTOR_Unknown" uint32_t
     let v_VGA = constant "DRM_MODE_CONNECTOR_VGA" uint32_t
     let v_DVII = constant "DRM_MODE_CONNECTOR_DVII" uint32_t

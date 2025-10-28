@@ -886,7 +886,10 @@ module Connector = struct
     let of_c c =
       List.assoc_opt c values |> Option.value ~default:Unknown
 
-    let to_string = function
+    let to_c t =
+      fst (List.find (fun (_, constr) -> constr = t) values)
+
+    let to_ocaml_name = function
       | Unknown -> "Unknown"
       | VGA -> "VGA"
       | DVII -> "DVII"
@@ -909,7 +912,13 @@ module Connector = struct
       | SPI -> "SPI"
       | USB -> "USB"
 
-    let pp = Fmt.of_to_string to_string
+    let name t =
+      C.Functions.drmModeGetConnectorTypeName (to_c t)
+      |> Err.ignore
+      |> Ctypes.(coerce (ptr_opt char) string_opt)
+      |> Option.value ~default:"Unknown"
+
+    let pp = Fmt.of_to_string to_ocaml_name
   end
 
   open CT.DrmModeConnector
@@ -950,11 +959,12 @@ module Connector = struct
 
   let pp_modes = Fmt.Dump.list Mode_info.pp_summary
 
-  let pp_name f t = Fmt.pf f "%a-%d" Type.pp t.connector_type t.connector_type_id
+  let pp_name f t = Fmt.pf f "%s-%d" (Type.name t.connector_type) t.connector_type_id
 
   let pp f t =
-    Fmt.pf f "{@[<hv>connector_id = %a;@ encoder_id = %a;@ connector_type = %a;@ connector_type_id = %d;@ connection = %a;@ mmWidth = %d;@ mmHeight = %d;@ subpixel = %a;@ modes = %a;@ props = %a;@ encoders = %a@]}"
-      Id.pp t.connector_id (Fmt.Dump.option Id.pp) t.encoder_id Type.pp t.connector_type t.connector_type_id Connection.pp t.connection
+    Fmt.pf f "{@[<v>connector_id = %a; (* %a *)@ encoder_id = %a;@ connector_type = %a;@ connector_type_id = %d;@ connection = %a;@ mmWidth = %d;@ mmHeight = %d;@ subpixel = %a;@ modes = %a;@ props = %a;@ encoders = %a@]}"
+      Id.pp t.connector_id pp_name t
+      (Fmt.Dump.option Id.pp) t.encoder_id Type.pp t.connector_type t.connector_type_id Connection.pp t.connection
       t.mm_width t.mm_height
       Sub_pixel.pp t.subpixel
       (pp_limited 4 Mode_info.pp_summary) t.modes
