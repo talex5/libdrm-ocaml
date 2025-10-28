@@ -309,6 +309,8 @@ module Connector : sig
 
   val get : Device.t -> id -> t
 
+  val id : t -> id
+
   val pp_modes : Mode_info.t list Fmt.t [@@ocaml.toplevel_printer]
 
   val pp_name : t Fmt.t
@@ -359,6 +361,8 @@ module Fb : sig
       can export each handle via {!Dmabuf.of_handle}, then immediately
       close each unique handle via {!close_plane_handles}. *)
 
+  val id : t -> id
+
   val add :
     ?interlaced:bool ->
     ?modifier:Modifier.t ->
@@ -402,6 +406,8 @@ module Crtc : sig
 
   val get : Device.t -> id -> t
 
+  val id : t -> id
+
   val set : Device.t -> id -> ?buffer:Fb.id -> pos:int * int -> connectors:[`Connector] Id.t list -> Mode_info.t option -> unit
   (** The old non-atomic API. *)
 
@@ -436,6 +442,8 @@ module Plane : sig
   }
 
   val get : Device.t -> id -> t
+
+  val id : t -> id
 
   val pp : t Fmt.t [@@ocaml.toplevel_printer]
 
@@ -482,6 +490,8 @@ module Encoder : sig
   }
 
   val get : Device.t -> id -> t
+
+  val id : t -> id
 
   val pp : t Fmt.t [@@ocaml.toplevel_printer]
 end

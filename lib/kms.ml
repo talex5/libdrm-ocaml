@@ -677,6 +677,8 @@ module Crtc = struct
     gamma_size : int;
   }
 
+  let id t = t.crtc_id
+
   let of_c c =
     let mode_valid = Ctypes.getf c mode_valid <> 0 in
     {
@@ -802,6 +804,8 @@ module Encoder = struct
     possible_crtcs : int;
     possible_clones : int;
   }
+
+  let id t = t.encoder_id
 
   let of_c c = {
     encoder_id = Ctypes.getf c encoder_id;
@@ -943,6 +947,8 @@ module Connector = struct
     encoders : Encoder.id list;
   }
 
+  let id t = t.connector_id
+
   let of_c c =
     let props = get_array c props count_props in
     let prop_values = get_array c prop_values count_props in
@@ -1005,6 +1011,8 @@ module Plane = struct
     possible_crtcs : int;
     (* gamma_size : int; https://dri.freedesktop.org/docs/drm/gpu/drm-uapi.html#c.drm_mode_get_plane says never used *)
   }
+
+  let id t = t.plane_id
 
   let of_c c = {
     formats = get_array c formats count_formats;
@@ -1095,6 +1103,8 @@ module Fb = struct
     interlaced : bool;
     planes : Buffer.id option Plane.t list;
   }
+
+  let id t = t.fb_id
 
   let of_c c =
     let handles = Ctypes.getf c handles in
