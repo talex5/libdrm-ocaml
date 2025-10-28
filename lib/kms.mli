@@ -379,11 +379,6 @@ module Fb : sig
       (depending on driver capabilities). *)
 
   val pp : t Fmt.t [@@ocaml.toplevel_printer]
-
-  (** {2 Properties} *)
-
-  type 'a property = ([`Fb], 'a) Property.t
-  val get_properties : Device.t -> id -> [`Fb] Properties.t
 end
 
 module Crtc : sig
@@ -489,11 +484,6 @@ module Encoder : sig
   val get : Device.t -> id -> t
 
   val pp : t Fmt.t [@@ocaml.toplevel_printer]
-
-  (** {2 Properties} *)
-
-  type 'a property = ([`Encoder], 'a) Property.t
-  val get_properties : Device.t -> id -> [`Encoder] Properties.t
 end
 
 module Resources : sig

@@ -794,7 +794,6 @@ module Encoder = struct
   open CT.DrmModeEncoder
 
   type id = [`Encoder] Id.t
-  type 'a property = ([`Encoder], 'a) Property.t
 
   type t = {
     encoder_id : id;
@@ -823,8 +822,6 @@ module Encoder = struct
       let x = of_c (!@ c) in
       C.Functions.drmModeFreeEncoder c |> Err.ignore;
       x
-
-  let get_properties dev = Properties.get dev Encoder
 end
 
 module Connector = struct
@@ -1088,7 +1085,6 @@ module Fb = struct
   open CT.DrmModeFB2
 
   type id = [`Fb] Id.t
-  type 'a property = ([`Fb], 'a) Property.t
 
   type t = {
     fb_id : id;
@@ -1169,8 +1165,6 @@ module Fb = struct
     match C.Functions.drmModeRmFB fd id with
     | 0, _ -> ()
     | _, errno -> Err.report errno "drmModeRmFB" ""
-
-  let get_properties dev = Properties.get dev Fb
 end
 
 module Atomic_req = struct
