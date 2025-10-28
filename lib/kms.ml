@@ -291,9 +291,15 @@ module Mode_info = struct
     Stdlib.float num *. 1000.00 /. Stdlib.float den
 
   let pp f t =
-    Fmt.pf f "{@[<hv>name = %S;@ flags = @[<h>%a@];@ stereo_mode = %a;@ typ = @[<h>%a@];@ clock = %d;@ hdisplay = %d;@ hsync_start = %d;@ hsync_end = %d;@ htotal = %d;@ hskew = %d;@ vdisplay = %d;@ vsync_start = %d;@ vsync_end = %d;@ vtotal = %d;@ vscan = %d;@ vrefresh = %d@]}"
-      t.name Flags.pp t.flags Stereo_mode.pp t.stereo_mode Type.pp t.typ
-      t.clock t.hdisplay t.hsync_start t.hsync_end t.htotal t.hskew t.vdisplay t.vsync_start t.vsync_end t.vtotal t.vscan t.vrefresh
+    Fmt.pf f "{@[<hv>name = %S;@ typ = @[<h>%a@];@ flags = @[<h>%a@];@ stereo_mode = %a;@ aspect_ratio = %a;@ clock = %d;@ hdisplay,vdisplay = %d,%d;@ hsync_start = %d;@ hsync_end = %d;@ htotal = %d;@ hskew = %d;@ vsync_start = %d;@ vsync_end = %d;@ vtotal = %d;@ vscan = %d;@ vrefresh = %d@]}"
+      t.name
+      Type.pp t.typ
+      Flags.pp t.flags
+      Stereo_mode.pp t.stereo_mode
+      Aspect_ratio.pp t.aspect_ratio
+      t.clock
+      t.hdisplay t.vdisplay
+      t.hsync_start t.hsync_end t.htotal t.hskew t.vsync_start t.vsync_end t.vtotal t.vscan t.vrefresh
 
   let pp_summary f t =
     Fmt.pf f "%s %.2fHz" t.name (vrefresh t)
@@ -962,13 +968,14 @@ module Connector = struct
   let pp_name f t = Fmt.pf f "%s-%d" (Type.name t.connector_type) t.connector_type_id
 
   let pp f t =
-    Fmt.pf f "{@[<v>connector_id = %a; (* %a *)@ encoder_id = %a;@ connector_type = %a;@ connector_type_id = %d;@ connection = %a;@ mmWidth = %d;@ mmHeight = %d;@ subpixel = %a;@ modes = %a;@ props = %a;@ encoders = %a@]}"
+    Fmt.pf f "{@[<v>connector_id = %a; (* %a *)@ connector_type = %a;@ connector_type_id = %d;@ connection = %a;@ mmWidth = %d;@ mmHeight = %d;@ subpixel = %a;@ modes = %a;@ props = %a;@ encoder_id = %a;@ encoders = %a@]}"
       Id.pp t.connector_id pp_name t
-      (Fmt.Dump.option Id.pp) t.encoder_id Type.pp t.connector_type t.connector_type_id Connection.pp t.connection
+      Type.pp t.connector_type t.connector_type_id Connection.pp t.connection
       t.mm_width t.mm_height
       Sub_pixel.pp t.subpixel
       (pp_limited 4 Mode_info.pp_summary) t.modes
       Properties.pp_raw t.props
+      (Fmt.Dump.option Id.pp) t.encoder_id
       (Fmt.Dump.list Id.pp) t.encoders
 
   let get fd id =
