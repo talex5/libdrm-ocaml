@@ -11,6 +11,6 @@ val of_int32 : int32 -> t
 val of_uint32 : Unsigned.UInt32.t -> t
 val to_uint32 : t -> Unsigned.UInt32.t
 
-val pp : t Fmt.t
+val pp : t Fmt.t [@@ocaml.toplevel_printer]
 
 val xr24 : t
