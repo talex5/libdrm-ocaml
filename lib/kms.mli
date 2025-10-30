@@ -446,7 +446,7 @@ module Crtc : sig
 
   type t = {
     crtc_id : id;
-    buffer_id : Fb.id option;
+    fb_id : Fb.id option;
     x : int;            (** Position on the framebuffer *)
     y : int;
     width : int;

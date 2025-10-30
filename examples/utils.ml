@@ -31,7 +31,7 @@ let save_old (t : Resources.t) (x : Kms.Crtc.t) =
   else Some (crtc, connectors)
 
 let reset_crtc (t : Resources.t) ((x : Kms.Crtc.t), (connectors : Kms.Connector.id list)) =
-  let fb = x.buffer_id in
+  let fb = x.fb_id in
   let pos = (x.x, x.y) in
   try
     Kms.Crtc.set t.dev x.crtc_id x.mode ?fb ~pos ~connectors

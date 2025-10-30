@@ -362,7 +362,7 @@ module Resources = struct
 
   let pp f t =
     let ids f xs = Fmt.Dump.list Id.pp f xs in
-    Fmt.pf f "{@[<hv>fbs = %a;@ crtcs = %a;@ connectors = %a;@ encoders = %a;@ min_width = %d;@ max_width = %d;@ min_height = %d;@ max_height = %d@]}"
+    Fmt.pf f "{@[<hv>fbs = %a;@ crtcs = %a;@ connectors = %a;@ encoders = %a;@ min_width,max_width = %d,%d;@ min_height,max_height = %d,%d@]}"
       ids t.fbs
       ids t.crtcs
       ids t.connectors
@@ -699,7 +699,7 @@ module Crtc = struct
 
   type t = {
     crtc_id : id;
-    buffer_id : [`Fb] Id.t option;
+    fb_id : [`Fb] Id.t option;
     x : int;
     y : int;
     width : int;
@@ -714,7 +714,7 @@ module Crtc = struct
     let mode_valid = Ctypes.getf c mode_valid <> 0 in
     {
       crtc_id = Ctypes.getf c crtc_id;
-      buffer_id = Ctypes.getf c buffer_id;
+      fb_id = Ctypes.getf c buffer_id;
       x = Ctypes.getf c x;
       y = Ctypes.getf c y;
       width = Ctypes.getf c width;
@@ -724,8 +724,8 @@ module Crtc = struct
     }
 
   let pp f t =
-    Fmt.pf f "{@[<hv>crtc_id = %a;@ buffer_id = %a;@ x,y = (%d,%d);@ width,height = %dx%d;@ mode = %a@]}"
-      Id.pp t.crtc_id (Fmt.Dump.option Id.pp) t.buffer_id t.x t.y t.width t.height (Fmt.Dump.option Mode_info.pp_summary) t.mode
+    Fmt.pf f "{@[<hv>crtc_id = %a;@ fb_id = %a;@ x,y = %d,%d;@ width,height = %d,%d;@ mode = %a@]}"
+      Id.pp t.crtc_id (Fmt.Dump.option Id.pp) t.fb_id t.x t.y t.width t.height (Fmt.Dump.option Mode_info.pp_summary) t.mode
 
   let get fd id =
     match C.Functions.drmModeGetCrtc fd id with
@@ -1010,7 +1010,7 @@ module Connector = struct
   let pp_name f t = Fmt.pf f "%s-%d" (Type.name t.connector_type) t.connector_type_id
 
   let pp f t =
-    Fmt.pf f "{@[<v>connector_id = %a; (* %a *)@ connector_type = %a;@ connector_type_id = %d;@ connection = %a;@ mmWidth = %d;@ mmHeight = %d;@ subpixel = %a;@ modes = %a;@ props = %a;@ encoder_id = %a;@ encoders = %a@]}"
+    Fmt.pf f "{@[<v>connector_id = %a; (* %a *)@ connector_type = %a;@ connector_type_id = %d;@ connection = %a;@ mm_width,mm_height = %d,%d;@ subpixel = %a;@ modes = %a;@ props = %a;@ encoder_id = %a;@ encoders = %a@]}"
       Id.pp t.connector_id pp_name t
       Type.pp t.connector_type t.connector_type_id Connection.pp t.connection
       t.mm_width t.mm_height
@@ -1074,7 +1074,7 @@ module Plane = struct
   }
 
   let pp f t =
-    Fmt.pf f "{@[<hv>formats = %a;@ plane_id = %a;@ crtc_id = %a;@ fb_id = %a;@ crtc_x,crtc_y = (%d,%d);@ x,y = (%d,%d);@ possible_crtcs = %#x@]}"
+    Fmt.pf f "{@[<hv>formats = %a;@ plane_id = %a;@ crtc_id = %a;@ fb_id = %a;@ crtc_x,crtc_y = %d,%d;@ x,y = %d,%d;@ possible_crtcs = %#x@]}"
       Fmt.(Dump.list Fourcc.pp) t.formats
       Id.pp t.plane_id
       Fmt.(Dump.option Id.pp) t.crtc_id
@@ -1199,7 +1199,7 @@ module Fb = struct
     }
 
   let pp f t =
-    Fmt.pf f "{@[<hv>fb_id = %a;@ width,height = %dx%d;@ pixel_format, modifier = %a, %a;@ interlaced = %b;@ planes = %a@]}"
+    Fmt.pf f "{@[<hv>fb_id = %a;@ width,height = %d,%d;@ pixel_format, modifier = %a, %a;@ interlaced = %b;@ planes = %a@]}"
       Id.pp t.fb_id t.width t.height Fourcc.pp t.pixel_format (Fmt.Dump.option Modifier.pp) t.modifier t.interlaced
       (Fmt.Dump.list Plane.pp_opt) t.planes
 
