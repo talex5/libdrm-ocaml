@@ -8,5 +8,3 @@ module Fourcc = Fourcc
 module Modifier = Modifier
 module Dev_t = Dev_t
 module Dmabuf = Dmabuf
-
-let get_devices = Device.Info.get_devices

@@ -54,7 +54,7 @@ let restore_modes_on_exit (t : Resources.t) fn =
   Fun.protect ~finally:cleanup fn
 
 let with_device fn =
-  let devices = Drm.get_devices () in
+  let devices = Drm.Device.list () in
   match List.find_map open_device devices with
   | None -> Fmt.failwith "No suitable device found. get_devices returned: %a" (Fmt.Dump.list Drm.Device.Info.pp) devices
   | Some dev ->

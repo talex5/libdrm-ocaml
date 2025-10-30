@@ -43,7 +43,7 @@ let test_sync_file dmabuf_fd =
   Unix.close sync_fd
 
 let () =
-  match Drm.get_devices ~get_pci_revision:true () with
+  match Drm.Device.list ~get_pci_revision:true () with
   | exception Unix.Unix_error (ENOENT, _, _) ->
     println "DRM not supported on this platform; skipping tests"
   | devices ->

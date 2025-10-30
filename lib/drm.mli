@@ -3,9 +3,6 @@
 
 module Device = Device
 
-val get_devices : ?get_pci_revision:bool -> unit -> Device.Info.t list
-(** Enumerate all devices available on the system. *)
-
 module Cap = Cap
 module Client_cap = Client_cap
 module Id = Id

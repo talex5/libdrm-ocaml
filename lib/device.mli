@@ -92,6 +92,6 @@ module Info : sig
 
   val pp : t Fmt.t [@@ocaml.toplevel_printer]
 
-  (**/**)
-  val get_devices : ?get_pci_revision:bool -> unit -> t list
 end
+
+val list : ?get_pci_revision:bool -> unit -> Info.t list

@@ -268,3 +268,4 @@ end
 
 let is_kms t = C.Functions.drmIsKMS t |> Err.ignore
 let is_master t = C.Functions.drmIsMaster t |> Err.ignore
+let list = Info.get_devices
