@@ -65,4 +65,8 @@ module Dumb = struct
     match C.Functions.drmModeDestroyDumbBuffer fd handle with
     | 0, _ -> ()
     | _, errno -> Err.report errno "drmModeDestroyDumbBuffer" ""
+
+  let pp f { bpp; width; height; handle; pitch; size } =
+    Fmt.pf f "{ bpp = %d; width = %d; height = %d; handle = %a; pitch = %d; size = %Ld }"
+      bpp width height Id.pp handle pitch size
 end

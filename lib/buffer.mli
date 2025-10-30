@@ -53,4 +53,6 @@ module Dumb : sig
   (** Wraps the low-level "drmModeCreateDumbBuffer".
 
      {!map} will call this for you automatically. *)
+
+  val pp : t Fmt.t [@@ocaml.toplevel_printer]
 end
