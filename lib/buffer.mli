@@ -45,6 +45,9 @@ module Dumb : sig
     ('a, 'b, Bigarray.c_layout) Bigarray.Array2.t
   (** [map dev t kind] makes [t] available as an OCaml Bigarray.
 
+      Note that the returned array may be wider than [t.width],
+      to match [t.pitch].
+
       @raise Invalid_argument if [kind] is not compatible with [t.bpp]. *)
 
   val destroy : Device.t -> id -> unit

@@ -58,8 +58,12 @@ module Dumb = struct
     if expected_bpp <> t.bpp then (
       Fmt.invalid_arg "Requested kind has %d bpp, but buffer is %d bpp" expected_bpp t.bpp
     );
+    (* The device might have rounded the width up. Need to map using the actual size.
+       This won't work if the pitch isn't a multiple of the kind size, but
+       it doesn't seem likely any device would do that. *)
+    let width = t.pitch / Bigarray.kind_size_in_bytes kind in
     let offset = get_map_offset fd t.handle in
-    map_pseudofile fd ~pos:offset ~kind (t.width, t.height)
+    map_pseudofile fd ~pos:offset ~kind (width, t.height)
 
   let destroy fd handle =
     match C.Functions.drmModeDestroyDumbBuffer fd handle with
