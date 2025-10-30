@@ -4,4 +4,4 @@ all:
 	dune build @all @check
 
 test:
-	dune runtest
+	dune exec -- ./examples/query.exe

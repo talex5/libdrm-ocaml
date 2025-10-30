@@ -27,13 +27,30 @@ module Dumb : sig
       buffers are not suitable to be displayed on any other device than the KMS
       device where they were allocated from. *)
 
-  type t = { handle : id; pitch : int; size : int64 }
+  type t = {
+    bpp : int;
+    width : int;
+    height : int;
+    handle : id;
+    pitch : int;
+    size : int64;
+  }
 
-  val create : Device.t -> bpp:int -> size:(int * int) -> t
+  val create : Device.t -> bpp:int -> (int * int) -> t
+  (** [create dev ~bpp (width, height)] allocates memory for a
+      [width, height] buffer with [bpp] bits per pixel. *)
 
   val map :
     Device.t -> t -> ('a, 'b) Bigarray.kind ->
-    int * int -> ('a, 'b, Bigarray.c_layout) Bigarray.Array2.t
+    ('a, 'b, Bigarray.c_layout) Bigarray.Array2.t
+  (** [map dev t kind] makes [t] available as an OCaml Bigarray.
+
+      @raise Invalid_argument if [kind] is not compatible with [t.bpp]. *)
 
   val destroy : Device.t -> id -> unit
+
+  val get_map_offset : Device.t -> id -> int64
+  (** Wraps the low-level "drmModeCreateDumbBuffer".
+
+     {!map} will call this for you automatically. *)
 end

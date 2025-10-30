@@ -1,6 +1,8 @@
-let create dev size =
-  let dumb_buffer = Drm.Buffer.Dumb.create dev ~bpp:32 ~size in
-  let arr = Drm.Buffer.Dumb.map dev dumb_buffer Int32 size in
+module K = Drm.Kms
+
+let create_dumb dev size =
+  let dumb_buffer = Drm.Buffer.Dumb.create dev ~bpp:32 size in
+  let arr = Drm.Buffer.Dumb.map dev dumb_buffer Int32 in
   for row = 0 to snd size - 1 do
     for col = 0 to fst size - 1 do
       let c =
@@ -12,3 +14,8 @@ let create dev size =
     done;
   done;
   dumb_buffer
+
+let create dev size =
+  let buffer = create_dumb dev size in
+  let planes = [K.Fb.Plane.v buffer.handle ~pitch:buffer.pitch] in
+  K.Fb.add dev ~size ~planes ~pixel_format:Drm.Fourcc.xr24

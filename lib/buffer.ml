@@ -24,12 +24,15 @@ let map_pseudofile ?(pos=0L) fd ~kind (width, height) =
 
 module Dumb = struct
   type t = {
+    bpp : int;
+    width : int;
+    height : int;
     handle : id;
     pitch : int;
     size : int64;
   }
 
-  let create fd ~bpp ~size:(width, height) =
+  let create fd ~bpp (width, height) =
     let handle = Ctypes.(allocate_n C.Types.buffer_id ~count:1) in
     let pitch = Ctypes.(allocate_n C.Types.pitch ~count:1) in
     let size = Ctypes.(allocate_n C.Types.size ~count:1) in
@@ -37,19 +40,26 @@ module Dumb = struct
     match C.Functions.drmModeCreateDumbBuffer fd width height bpp flags handle pitch size with
     | 0, _ ->
       {
+        bpp; width; height;
         handle = !@ handle;
         pitch = !@ pitch;
         size = !@ size;
       }
     | _, errno -> Err.report errno "drmModeCreateDumbBuffer" ""
 
-  let map fd t kind size =
+  let get_map_offset fd handle =
     let offset = Ctypes.(allocate_n uint64_t ~count:1) in
-    match C.Functions.drmModeMapDumbBuffer fd t.handle offset with
-    | 0, _ ->
-      let offset = U64.to_int64 (!@ offset) in
-      map_pseudofile fd ~pos:offset ~kind size
+    match C.Functions.drmModeMapDumbBuffer fd handle offset with
+    | 0, _ -> U64.to_int64 (!@ offset)
     | _, errno -> Err.report errno "drmModeMapDumbBuffer" ""
+
+  let map fd t kind =
+    let expected_bpp = Bigarray.kind_size_in_bytes kind * 8 in
+    if expected_bpp <> t.bpp then (
+      Fmt.invalid_arg "Requested kind has %d bpp, but buffer is %d bpp" expected_bpp t.bpp
+    );
+    let offset = get_map_offset fd t.handle in
+    map_pseudofile fd ~pos:offset ~kind (t.width, t.height)
 
   let destroy fd handle =
     match C.Functions.drmModeDestroyDumbBuffer fd handle with

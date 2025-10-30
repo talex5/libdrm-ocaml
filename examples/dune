@@ -1,3 +1,7 @@
 (executables
- (names nonatomic atomic)
+ (names query nonatomic atomic)
  (libraries drm))
+
+(rule
+ (alias runtest)
+ (action (run ./query.exe)))

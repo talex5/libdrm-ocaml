@@ -5,8 +5,11 @@ let open_device (d : Drm.Device.Info.t) =
   | None -> None
   | Some primary ->
     let fd = Unix.openfile primary [O_RDWR; O_CLOEXEC] 0 in
-    if not (Drm.Device.is_kms fd) then None
-    else Some fd
+    if Drm.Device.is_kms fd then Some fd
+    else (
+      Unix.close fd;
+      None
+    )
 
 let save_old (t : Resources.t) (x : Kms.Crtc.t) =
   let encoder_uses_crtc = function
@@ -28,10 +31,10 @@ let save_old (t : Resources.t) (x : Kms.Crtc.t) =
   else Some (crtc, connectors)
 
 let reset_crtc (t : Resources.t) ((x : Kms.Crtc.t), (connectors : Kms.Connector.id list)) =
-  let buffer = x.buffer_id in
+  let fb = x.buffer_id in
   let pos = (x.x, x.y) in
   try
-    Kms.Crtc.set t.dev x.crtc_id x.mode ?buffer ~pos ~connectors
+    Kms.Crtc.set t.dev x.crtc_id x.mode ?fb ~pos ~connectors
   with ex ->
     Fmt.epr "reset_crtc failed: %a@." Fmt.exn ex
 

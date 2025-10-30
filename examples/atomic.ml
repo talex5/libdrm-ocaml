@@ -24,7 +24,6 @@ let show_test_page (t : Resources.t) tx (c : Kms.Connector.t) =
     println "Preparing settings for %a" Kms.Connector.pp_name c;
     let mode = List.hd c.modes in
     let size = (mode.hdisplay, mode.vdisplay) in
-    let dumb_buffer = Test_image.create t.dev size in
     let crtc_idx = Resources.crtc_index t crtc_id in
     let plane =
       match find_plane t.dev ~crtc_idx with
@@ -35,8 +34,7 @@ let show_test_page (t : Resources.t) tx (c : Kms.Connector.t) =
           crtc_idx
     in
     println "Using plane %a" Drm.Id.pp (Kms.Properties.object_id plane);     (* todo: already used? *)
-    let fb_plane = { Kms.Fb.Plane.handle = dumb_buffer.handle; pitch = dumb_buffer.pitch; offset = 0 } in
-    let fb = Kms.Fb.add t.dev ~size ~planes:[fb_plane] ~pixel_format:Drm.Fourcc.xr24 in
+    let fb = Test_image.create t.dev size in
     Kms.Atomic_req.add_property tx plane Kms.Plane.fb_id (Some fb)
 
 let () =

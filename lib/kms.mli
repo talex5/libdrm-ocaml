@@ -359,7 +359,10 @@ module Fb : sig
 
   module Plane : sig
     type 'handle t = { handle : 'handle; pitch : int; offset : int }
-    val pp : Buffer.id option t Fmt.t
+
+    val v : pitch:int -> ?offset:int -> Buffer.id -> Buffer.id t
+
+    val pp_opt : Buffer.id option t Fmt.t
   end
 
   type id = [`Fb] Id.t
@@ -456,7 +459,7 @@ module Crtc : sig
 
   val id : t -> id
 
-  val set : Device.t -> id -> ?buffer:Fb.id -> pos:int * int -> connectors:[`Connector] Id.t list -> Mode_info.t option -> unit
+  val set : Device.t -> id -> ?fb:Fb.id -> pos:int * int -> connectors:[`Connector] Id.t list -> Mode_info.t option -> unit
   (** The old non-atomic API. *)
 
   val page_flip : ?event:bool -> Device.t -> id -> user_data:unit Ctypes_static.ptr -> Fb.id -> unit

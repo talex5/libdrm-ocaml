@@ -735,10 +735,10 @@ module Crtc = struct
       C.Functions.drmModeFreeCrtc c |> Err.ignore;
       x
 
-  let set fd id ?buffer ~pos:(x, y) ~connectors mode =
+  let set fd id ?fb ~pos:(x, y) ~connectors mode =
     let connectors = Ctypes.(CArray.of_list C.Types.connector_id) connectors in
     let mode = Option.map Mode_info.to_c mode in
-    match C.Functions.drmModeSetCrtc fd id buffer x y connectors.astart connectors.alength mode with
+    match C.Functions.drmModeSetCrtc fd id fb x y connectors.astart connectors.alength mode with
     | 0, _ -> ()
     | _, errno -> Err.report errno "drmModeSetCrtc" ""
 
@@ -1153,7 +1153,9 @@ module Fb = struct
       offset : int;
     }
 
-    let pp f { handle; pitch; offset } =
+    let v ~pitch ?(offset=0) handle = { handle; pitch; offset }
+
+    let pp_opt f { handle; pitch; offset } =
       Fmt.pf f "{@[handle = %a;@ pitch = %d;@ offset = %d}"
         (Fmt.Dump.option Id.pp) handle
         pitch
@@ -1207,7 +1209,7 @@ module Fb = struct
   let pp f t =
     Fmt.pf f "{@[<hv>fb_id = %a;@ width,height = %dx%d;@ pixel_format, modifier = %a, %a;@ interlaced = %b;@ planes = %a@]}"
       Id.pp t.fb_id t.width t.height Fourcc.pp t.pixel_format (Fmt.Dump.option Modifier.pp) t.modifier t.interlaced
-      (Fmt.Dump.list Plane.pp) t.planes
+      (Fmt.Dump.list Plane.pp_opt) t.planes
 
   let get fd id =
     match C.Functions.drmModeGetFB2 fd id with
