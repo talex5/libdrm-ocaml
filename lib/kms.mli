@@ -492,6 +492,11 @@ module Plane : sig
     possible_crtcs : int;
   }
 
+  val list : Device.t -> id list
+  (** Get the plane resources.
+
+      Note: You must enable {!Client_cap.atomic} mode first. *)
+
   val get : Device.t -> id -> t
 
   val id : t -> id
@@ -563,17 +568,6 @@ module Resources : sig
   }
   val get : Device.t -> t
   val pp : t Fmt.t [@@ocaml.toplevel_printer]
-end
-
-module Plane_resources : sig
-  (** The set of planes provided by the hardware. *)
-
-  type t = Plane.id list
-
-  val get : Device.t -> t
-  (** Enable {!Client_cap.atomic} mode first to get the planes. *)
-
-  val pp : t Fmt.t
 end
 
 module Atomic_req : sig

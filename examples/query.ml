@@ -64,7 +64,7 @@ let () =
       println "@[<v2>Encoders:@,%a@]" (Fmt.Dump.list pp_encoder) encoders;
       let connectors = List.map (K.Connector.get dev) mode_res.connectors in
       println "@[<v2>Connectors:@,%a@]" (Fmt.Dump.list (pp_connector dev)) connectors;
-      let planes = K.Plane_resources.get dev |> List.map (K.Plane.get dev) in
+      let planes = K.Plane.list dev |> List.map (K.Plane.get dev) in
       println "@[<v2>Planes:@,%a@]" (Fmt.Dump.list (pp_plane dev)) planes;
       let crtcs = List.map (K.Crtc.get dev) mode_res.crtcs in
       println "@[<v2>CRTCs:@,%a@]" (Fmt.Dump.list pp_crtc) crtcs;

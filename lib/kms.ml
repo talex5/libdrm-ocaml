@@ -1083,6 +1083,15 @@ module Plane = struct
       t.x t.y
       t.possible_crtcs
 
+  let list fd =
+    match C.Functions.drmModeGetPlaneResources fd with
+    | None, errno -> Err.report errno "drmModeGetPlaneResources" ""
+    | Some c, _ ->
+      let open CT.DrmModePlaneRes in
+      let t = get_array (!@ c) planes count_planes in
+      C.Functions.drmModeFreePlaneResources c |> Err.ignore;
+      t
+
   let get fd id =
     match C.Functions.drmModeGetPlane fd id with
     | None, errno -> Err.report errno "drmModeGetPlane" ""
@@ -1126,23 +1135,6 @@ module Plane = struct
       ~read:(fun _ blob_id -> get_in_formats dev (Id.of_uint64 blob_id))
 
   let get_properties dev = Properties.get dev Plane
-end
-
-module Plane_resources = struct
-  open CT.DrmModePlaneRes
-  type t = Plane.id list
-
-  let of_c c = get_array c planes count_planes
-
-  let pp = Fmt.Dump.list Id.pp
-
-  let get fd =
-    match C.Functions.drmModeGetPlaneResources fd with
-    | None, errno -> Err.report errno "drmModeGetPlaneResources" ""
-    | Some c, _ ->
-      let t = of_c (!@ c) in
-      C.Functions.drmModeFreePlaneResources c |> Err.ignore;
-      t
 end
 
 module Fb = struct

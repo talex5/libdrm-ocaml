@@ -14,7 +14,7 @@ let find_plane dev ~crtc_idx =
       | _ -> None
     ) else None
   in
-  K.Plane_resources.get dev |> List.find_map compatible
+  K.Plane.list dev |> List.find_map compatible
 
 let show_test_page (t : Resources.t) rq (c : K.Connector.t) =
   let obj = K.Connector.get_properties t.dev c.connector_id in
