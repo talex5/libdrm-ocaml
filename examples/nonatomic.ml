@@ -20,6 +20,6 @@ let show_test_page (t : Resources.t) (c : K.Connector.t) =
 let () =
   Utils.with_device @@ fun t ->
   let connected = List.filter Utils.is_connected t.connectors in
-  Utils.restore_modes_on_exit t @@ fun () ->
+  Utils.restoring_afterwards t @@ fun () ->
   List.iter (show_test_page t) connected;
   Unix.sleep 2

@@ -50,6 +50,6 @@ let () =
     println "Mode-setting would fail with error: %s" (Unix.error_message code)
   | () ->
     println "Pre-commit test passed.";
-    Utils.restore_modes_on_exit t @@ fun () ->
+    Utils.restoring_afterwards t @@ fun () ->
     K.Atomic_req.commit t.dev rq;
     Unix.sleep 2

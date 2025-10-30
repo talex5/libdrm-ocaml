@@ -38,7 +38,7 @@ let reset_crtc (t : Resources.t) ((x : Kms.Crtc.t), (connectors : Kms.Connector.
   with ex ->
     Fmt.epr "reset_crtc failed: %a@." Fmt.exn ex
 
-let restore_modes_on_exit (t : Resources.t) fn =
+let restoring_afterwards (t : Resources.t) fn =
   if not (Drm.Device.is_master t.dev) then (
     Fmt.epr "WARNING: Not DRM master for device (probably something else is using it)@."
   );
