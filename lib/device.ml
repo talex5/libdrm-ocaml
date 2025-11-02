@@ -213,7 +213,7 @@ module Info = struct
     in
     { primary_node; render_node; info }
 
-  let get_devices ?(get_pci_revision=false) () =
+  let get_devices ?(get_pci_revision=true) () =
     let flags = if get_pci_revision then C.Types.Deviceinfo.get_pci_revision else Unsigned.UInt32.of_int 0 in
     let n_devices, errno = C.Functions.drmGetDevices2 flags None 0 in
     if n_devices < 0 then Err.report errno "drmGetDevices2" "";

@@ -95,3 +95,7 @@ module Info : sig
 end
 
 val list : ?get_pci_revision:bool -> unit -> Info.t list
+(** [list ()] returns available graphics devices.
+
+    @param get_pci_revision If [false], skip getting the PCI device revision field.
+                            The default is [true]. *)
