@@ -70,7 +70,11 @@ module Functions (F : FOREIGN) = struct
   let drmModeDirtyFB = foreign "drmModeDirtyFB" (fd @-> fb_id @-> ptr Drm_clip_rect.t @-> int_uint32 @-> returning int)
 
   let drmModeRmFB = foreign "drmModeRmFB" (fd @-> fb_id @-> returning int)
-  let drmModeCloseFB = foreign "drmModeCloseFB" (fd @-> fb_id @-> returning int)
+  let drmModeCloseFB =
+    if Config.drm_ioctl_mode_closefb then
+      Some (foreign "drmModeCloseFB" (fd @-> fb_id @-> returning int))
+    else
+      None
 
   let drmModeGetFB2 = foreign "drmModeGetFB2" (fd @-> fb_id @-> returning (ptr_opt DrmModeFB2.t))
   let drmModeFreeFB2 = foreign "drmModeFreeFB2" (ptr DrmModeFB2.t @-> returning void)

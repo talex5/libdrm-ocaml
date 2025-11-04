@@ -1250,9 +1250,12 @@ module Fb = struct
     | _, errno -> Err.report errno "drmModeRmFB" ""
 
   let close fd id =
-    match C.Functions.drmModeCloseFB fd id with
-    | 0, _ -> ()
-    | _, errno -> Err.report errno "drmModeCloseFB" ""
+    match C.Functions.drmModeCloseFB with
+    | None -> raise (Unix.Unix_error (Unix.ENOSYS, "drmModeCloseFB", "Need libdrm >= 2.4.118"))
+    | Some drmModeCloseFB ->
+      match drmModeCloseFB fd id with
+      | 0, _ -> ()
+      | _, errno -> Err.report errno "drmModeCloseFB" ""
 end
 
 module Atomic_req = struct

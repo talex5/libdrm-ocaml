@@ -1,6 +1,6 @@
 module C = Configurator.V1
 
-let int_constants = [
+let int_constants = List.map (fun c -> c, C.C_define.Type.Int) [
   "DRM_NODE_MAX";
   "DRM_PLATFORM_DEVICE_NAME_LEN";
   "DRM_HOST1X_DEVICE_NAME_LEN";
@@ -17,6 +17,10 @@ let int_constants = [
   "DRM_MODE_SUBPIXEL_VERTICAL_RGB";
   "DRM_MODE_SUBPIXEL_VERTICAL_BGR";
   "DRM_MODE_SUBPIXEL_NONE";
+]
+
+let ifdef = List.map (fun c -> c, C.C_define.Type.Switch) [
+  "DRM_IOCTL_MODE_CLOSEFB";
 ]
 
 let sizes = [
@@ -36,10 +40,12 @@ let () =
       in
       let defs =
         C.C_define.import c ~c_flags:conf.cflags ~includes:["linux/dma-buf.h"; "xf86drm.h"; "xf86drmMode.h"]
-          (List.map (fun c -> c, C.C_define.Type.Int) int_constants)
+          (int_constants @ ifdef)
         |> List.map (function
             | name, C.C_define.Value.Int v ->
               Printf.sprintf "let %s = 0x%x" (String.lowercase_ascii name) v
+            | name, C.C_define.Value.Switch v ->
+              Printf.sprintf "let %s = %b" (String.lowercase_ascii name) v
             | _ -> assert false
           )
       in
