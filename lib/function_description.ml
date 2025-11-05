@@ -98,6 +98,16 @@ module Functions (F : FOREIGN) = struct
 
   let drmCheckModesettingSupported = foreign "drmCheckModesettingSupported" (string @-> returning int)
 
+  let drmModeCrtcGetGamma = foreign "drmModeCrtcGetGamma"
+      (fd @-> crtc_id @-> int_uint32 @->
+       ptr int_uint16 @-> ptr int_uint16 @-> ptr int_uint16 @->
+       returning int)
+
+  let drmModeCrtcSetGamma = foreign "drmModeCrtcSetGamma"
+      (fd @-> crtc_id @-> int_uint32 @->
+       ptr int_uint16 @-> ptr int_uint16 @-> ptr int_uint16 @->
+       returning int)
+
   (* Atomic KMS *)
 
   let drmModeAtomicAlloc = foreign "drmModeAtomicAlloc" (void @-> returning AtomicReqPtr.t_opt)

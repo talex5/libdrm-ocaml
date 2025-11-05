@@ -481,6 +481,14 @@ module Crtc : sig
   val set_cursor : Device.t -> id -> ?hot:(int * int) -> size:(int * int) -> Buffer.id option -> unit
   val move_cursor : Device.t -> id -> int * int -> unit
 
+  type gamma_lut = (int, Bigarray.int16_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+
+  val get_gamma : Device.t -> t -> gamma_lut * gamma_lut * gamma_lut
+  (** Get the gamma table. *)
+
+  val set_gamma : Device.t -> t -> gamma_lut * gamma_lut * gamma_lut -> unit
+  (** Set the gamma table. *)
+
   val pp : t Fmt.t [@@ocaml.toplevel_printer]
 
   (** {2 Properties} *)

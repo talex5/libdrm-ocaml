@@ -801,6 +801,29 @@ module Crtc = struct
     | 0, _ -> ()
     | _, errno -> Err.report errno "drmModeMoveCursor" ""
 
+  type gamma_lut = (int, Bigarray.int16_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+
+  let get_gamma dev t =
+    let count = t.gamma_size in
+    let r = Bigarray.(Array1.create int16_unsigned) C_layout count in
+    let g = Bigarray.(Array1.create int16_unsigned) C_layout count in
+    let b = Bigarray.(Array1.create int16_unsigned) C_layout count in
+    let start = Ctypes.(bigarray_start array1) in
+    match C.Functions.drmModeCrtcGetGamma dev t.crtc_id count (start r) (start g) (start b) with
+    | 0, _ -> r, g, b
+    | _, errno -> Err.report errno "drmModeCrtcGetGamma" ""
+
+  let set_gamma dev t (r, g, b) =
+    let count = t.gamma_size in
+    let check x = if count <> Bigarray.Array1.dim x then invalid_arg "LUT size doesn't match gamma_size!" in
+    check r;
+    check g;
+    check b;
+    let start = Ctypes.(bigarray_start array1) in
+    match C.Functions.drmModeCrtcSetGamma dev t.crtc_id count (start r) (start g) (start b) with
+    | 0, _ -> ()
+    | _, errno -> Err.report errno "drmModeCrtcSetGamma" ""
+
   let get_properties dev = Properties.Values.get dev Crtc
 
   let active = Property.create_bool "ACTIVE"

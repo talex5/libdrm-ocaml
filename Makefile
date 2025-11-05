@@ -5,4 +5,4 @@ all:
 
 test:
 	dune exec -- ./examples/query.exe
-	dune runtest
+	dune runtest ./test/
