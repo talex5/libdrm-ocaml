@@ -47,6 +47,8 @@ module Functions (F : FOREIGN) = struct
   let drmModeObjectGetProperties = foreign "drmModeObjectGetProperties" (fd @-> object_id @-> uint32_t @-> returning (ptr_opt DrmModeObjectProperties.t))
   let drmModeFreeObjectProperties = foreign "drmModeFreeObjectProperties" (ptr DrmModeObjectProperties.t @-> returning void)
 
+  let drmModeObjectSetProperty = foreign "drmModeObjectSetProperty" (fd @-> object_id @-> uint32_t @-> property_id @-> uint64_t @-> returning int)
+
   let drmModeGetProperty = foreign "drmModeGetProperty" (fd @-> property_id @-> returning (ptr_opt DrmModeProperty.t))
   let drmModeFreeProperty = foreign "drmModeFreeProperty" (ptr DrmModeProperty.t @-> returning void)
 

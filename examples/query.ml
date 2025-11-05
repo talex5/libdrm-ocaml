@@ -5,7 +5,7 @@ let println fmt = Fmt.pr (fmt ^^ "@.")
 
 let pp_connector fd f (x : K.Connector.t) =
   if x.connection = Connected then (
-    let props = K.Properties.Values.of_raw fd x.connector_id x.props in
+    let props = K.Properties.Values.of_raw fd Connector x.connector_id x.props in
     Fmt.pf f "%a@,%a"
       K.Connector.pp x
       K.Properties.Values.pp props

@@ -237,6 +237,9 @@ module Properties : sig
   val lookup_property : 'a metadata -> ('a, _) Property.t -> Property.Info.t option
   (** [lookup_name metadata p] returns information about the property [p]. *)
 
+  val set_value : Device.t -> 'a metadata -> ('a, 'v) Property.t -> 'v -> unit
+  (** [set_value dev t p v] sets the value of [p] to [v] on the object [t]. *)
+
   module Values : sig
     type 'a t = private {
       metadata : 'a metadata;
@@ -268,7 +271,7 @@ module Properties : sig
 
         This isn't very useful, because the IDs aren't standardised, so you usually need the names too. *)
 
-    val of_raw : Device.t -> 'a Id.t -> raw -> 'a t
+    val of_raw : Device.t -> 'a Type.t -> 'a Id.t -> raw -> 'a t
   end
 end
 

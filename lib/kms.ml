@@ -620,6 +620,7 @@ module Properties = struct
   end
 
   type 'a metadata = {
+    ty : 'a Type.t;
     id : 'a Id.t;
     by_name : Property.Info.t String_map.t;
     by_id : Property.Info.t Property.Map.t;
@@ -627,7 +628,7 @@ module Properties = struct
 
   let object_id t = t.id
 
-  let of_bindings dev id bindings =
+  let of_bindings dev ty id bindings =
     let by_name =
       let add idx (id, _value) =
         let info = Property.Info.get dev id in
@@ -641,7 +642,7 @@ module Properties = struct
       in
       String_map.fold add by_name Property.Map.empty
     in
-    { id; by_name; by_id }
+    { ty; id; by_name; by_id }
 
   let lookup_id t id =
     Property.Map.find id t.by_id
@@ -653,6 +654,16 @@ module Properties = struct
     match lookup_property t p with
     | None -> Fmt.failwith "No property %S on object %a" p.name Id.pp t.id
     | Some x -> x
+
+  let set_value dev t p value =
+    let id = Id.of_int (t.id : _ Id.t :> int) in
+    match lookup_property t p with
+    | None -> Fmt.failwith "No property %S on object %a" p.name Id.pp t.id
+    | Some info ->
+      let v = p.write info value in
+      match C.Functions.drmModeObjectSetProperty dev id (Type.to_c t.ty) info.prop_id v with
+      | 0, _ -> ()
+      | _, errno -> Err.report errno "drmModeObjectSetProperty" ""
 
   module Values = struct
     open CT.DrmModeObjectProperties
@@ -692,8 +703,8 @@ module Properties = struct
         C.Functions.drmModeFreeObjectProperties c |> Err.ignore;
         x
 
-    let of_raw dev id raw =
-      let metadata = of_bindings dev id raw in
+    let of_raw dev ty id raw =
+      let metadata = of_bindings dev ty id raw in
       let values =
         let add idx (id, value) = Property.Map.add id value idx in
         List.fold_left add Property.Map.empty raw
@@ -701,7 +712,7 @@ module Properties = struct
       { metadata; values }
 
     let get dev ty id =
-      of_raw dev id (get_raw dev ty id)
+      of_raw dev ty id (get_raw dev ty id)
 
     let get_value t (prop : _ Property.t) =
       lookup_property t.metadata prop
