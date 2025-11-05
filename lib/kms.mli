@@ -193,6 +193,9 @@ module Property : sig
 
       This is useful if you need a property that isn't pre-defined. *)
 
+  val create_bool : string -> (_, bool) t
+  (** [create_bool name] is a property whose value is 0 or 1/non-zero for true. *)
+
   val create_id : string -> (_, _ Id.t) t
   (** [create_id name] is a property whose value is an object ID. *)
 
@@ -473,6 +476,8 @@ module Crtc : sig
 
   type 'a property = ([`Crtc], 'a) Property.t
   val get_properties : Device.t -> id -> [`Crtc] Properties.t
+
+  val active : bool property
 end
 
 module Plane : sig

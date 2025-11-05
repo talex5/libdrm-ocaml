@@ -525,6 +525,9 @@ module Property = struct
   let create_id_opt name =
     create ~read:(fun _ -> Id.of_uint64_opt) ~write:(fun _ -> Id.to_uint64_opt) name
 
+  let create_bool name =
+    create ~read:(fun _ x -> x <> U64.zero) ~write:(fun _ v -> U64.of_int (Bool.to_int v)) name
+
   let create_enum name enum_values =
     let read (info : Info.t) x =
       match info.ty with
@@ -767,6 +770,8 @@ module Crtc = struct
     | _, errno -> Err.report errno "drmModeMoveCursor" ""
 
   let get_properties dev = Properties.get dev Crtc
+
+  let active = Property.create_bool "ACTIVE"
 end
 
 module Sub_pixel = struct
