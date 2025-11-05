@@ -510,6 +510,27 @@ module Property = struct
         x
   end
 
+  let pp_value (info : Info.t) f value =
+    match info.ty with
+    | Enum values ->
+      begin match Info.Named_value.lookup value values with
+        | Some name -> Fmt.string f name
+        | None -> U64.pp f value
+      end
+    | Bitmask values ->
+      Fmt.(Dump.list string) f @@
+      List.filter_map (fun (e : Info.Named_value.t) ->
+          let mask = U64.(shift_left one) (U64.to_int e.value) in
+          if U64.logand value mask <> U64.zero then Some e.name else None
+        ) values
+    | Signed_range _ ->
+      Fmt.int64 f (U64.to_int64 value)
+    | Blob _ | Object ->
+      if value = U64.zero then Fmt.string f "None"
+      else U64.pp f value
+    | Unsigned_range _ | Unknown _ ->
+      U64.pp f value
+
   type ('obj, 'value) t = {
     name : string;
     read : Info.t -> U64.t -> 'value;
@@ -554,6 +575,8 @@ module Property = struct
         | _ -> Fmt.failwith "Property %S is not an enum!" info.name
     in
     create ~read ~write name
+
+  module Map = Map.Make(struct type t = id let compare = Id.compare end)
 end
 
 module Properties = struct
@@ -596,102 +619,100 @@ module Properties = struct
     let pp f x = Fmt.of_to_string to_string f x
   end
 
-  open CT.DrmModeObjectProperties
-
-  type value_info = {
-    id : Property.id;
-    value : Property.raw_value;
-    info : Property.Info.t;
-  }
-
-  let pp_value f x =
-    match x.info.ty with
-    | Enum values ->
-      begin match Property.Info.Named_value.lookup x.value values with
-        | Some name -> Fmt.string f name
-        | None -> U64.pp f x.value
-      end
-    | Bitmask values ->
-      Fmt.(Dump.list string) f @@
-      List.filter_map (fun (e : Property.Info.Named_value.t) ->
-          let mask = U64.(shift_left one) (U64.to_int e.value) in
-          if U64.logand x.value mask <> U64.zero then Some e.name else None
-        ) values
-    | Signed_range _ ->
-      Fmt.int64 f (U64.to_int64 x.value)
-    | Blob _ | Object ->
-      if x.value = U64.zero then Fmt.string f "None"
-      else U64.pp f x.value
-    | Unsigned_range _ | Unknown _ ->
-      U64.pp f x.value
-
-  type 'a t = {
+  type 'a metadata = {
     id : 'a Id.t;
-    props : value_info String_map.t;
+    by_name : Property.Info.t String_map.t;
+    by_id : Property.Info.t Property.Map.t;
   }
-
-  let of_c c =
-    let props = get_array c props count_props in
-    let prop_values = get_array c prop_values count_props in
-    List.map2 (fun k v -> (k, v)) props prop_values
-
-  let pp f t =
-    let pp_binding f (k, v) = Fmt.pf f "%s = %a" k pp_value v in
-    Fmt.pf f "{@[<hov>%a@]}"
-      (Fmt.iter_bindings String_map.iter pp_binding ~sep:Fmt.semi) t.props
-
-  type binding = Property.id * Property.raw_value
-  type raw_properties = binding list
-  type object_types = [ `Blob | `Connector | `Crtc | `Encoder | `Fb | `Mode | `Plane | `Property ]
-
-  let pp_binding f (k, v) =
-    Fmt.pf f "%a:%a" Id.pp k U64.pp v
-
-  let pp_raw = Fmt.Dump.list pp_binding
-
-  let get_raw dev ty id =
-    let id = (id : [< object_types] Id.t :> object_types Id.t) in
-    match C.Functions.drmModeObjectGetProperties dev id (Type.to_c ty) with
-    | None, errno -> Err.report errno "drmModeObjectGetProperties" ""
-    | Some c, _ ->
-      let x = of_c (!@ c) in
-      C.Functions.drmModeFreeObjectProperties c |> Err.ignore;
-      x
-
-  let of_raw dev id raw =
-    let props =
-      let add idx (id, value) =
-        let info = Property.Info.get dev id in
-        let prop = {id; value; info } in
-        String_map.add info.name prop idx
-      in
-      List.fold_left add String_map.empty raw
-    in
-    { id; props }
-
-  let get dev ty id =
-    of_raw dev id (get_raw dev ty id)
 
   let object_id t = t.id
 
-  let get_value_info t (p : _ Property.t) =
-    String_map.find_opt p.name t.props
+  let of_bindings dev id bindings =
+    let by_name =
+      let add idx (id, _value) =
+        let info = Property.Info.get dev id in
+        String_map.add info.name info idx
+      in
+      List.fold_left add String_map.empty bindings
+    in
+    let by_id =
+      let add _name (info : Property.Info.t) idx =
+        Property.Map.add info.prop_id info idx
+      in
+      String_map.fold add by_name Property.Map.empty
+    in
+    { id; by_name; by_id }
 
-  let get_value_info_exn t p =
-    match get_value_info t p with
-    | Some x -> x
+  let lookup_id t id =
+    Property.Map.find id t.by_id
+
+  let lookup_property t (p : _ Property.t) =
+    String_map.find_opt p.name t.by_name
+
+  let lookup_property_exn t p =
+    match lookup_property t p with
     | None -> Fmt.failwith "No property %S on object %a" p.name Id.pp t.id
+    | Some x -> x
 
-  let get_value t (prop : _ Property.t) =
-    get_value_info t prop
-    |> Option.map (fun x -> prop.read x.info x.value)
+  module Values = struct
+    open CT.DrmModeObjectProperties
 
-  let get_value_exn t prop =
-    let x = get_value_info_exn t prop in
-    prop.read x.info x.value
+    type 'a t = {
+      metadata : 'a metadata;
+      values : Property.raw_value Property.Map.t;
+    }
 
-  let get_info t name =
-    Option.map (fun x -> x.info) (String_map.find_opt name t.props)
+    let of_c c =
+      let props = get_array c props count_props in
+      let prop_values = get_array c prop_values count_props in
+      List.map2 (fun k v -> (k, v)) props prop_values
+
+    let pp f t =
+      let pp_binding f (k, v) =
+        let ty = lookup_id t.metadata k in
+        Fmt.pf f "%s = %a" ty.name (Property.pp_value ty) v
+      in
+      Fmt.pf f "{@[<hov>%a@]}"
+        (Fmt.iter_bindings Property.Map.iter pp_binding ~sep:Fmt.semi) t.values
+
+    type binding = Property.id * Property.raw_value
+    type raw = binding list
+
+    let pp_binding f (k, v) =
+      Fmt.pf f "%a:%a" Id.pp k U64.pp v
+
+    let pp_raw = Fmt.Dump.list pp_binding
+
+    let get_raw dev ty id =
+      let id = Id.of_int (id : _ Id.t :> int) in
+      match C.Functions.drmModeObjectGetProperties dev id (Type.to_c ty) with
+      | None, errno -> Err.report errno "drmModeObjectGetProperties" ""
+      | Some c, _ ->
+        let x = of_c (!@ c) in
+        C.Functions.drmModeFreeObjectProperties c |> Err.ignore;
+        x
+
+    let of_raw dev id raw =
+      let metadata = of_bindings dev id raw in
+      let values =
+        let add idx (id, value) = Property.Map.add id value idx in
+        List.fold_left add Property.Map.empty raw
+      in
+      { metadata; values }
+
+    let get dev ty id =
+      of_raw dev id (get_raw dev ty id)
+
+    let get_value t (prop : _ Property.t) =
+      lookup_property t.metadata prop
+      |> Option.map (fun info ->
+          prop.read info (Property.Map.find info.prop_id t.values)
+        )
+
+    let get_value_exn t prop =
+      let info = lookup_property_exn t.metadata prop in
+      prop.read info (Property.Map.find info.prop_id t.values)
+  end
 end
 
 module Crtc = struct
@@ -769,7 +790,7 @@ module Crtc = struct
     | 0, _ -> ()
     | _, errno -> Err.report errno "drmModeMoveCursor" ""
 
-  let get_properties dev = Properties.get dev Crtc
+  let get_properties dev = Properties.Values.get dev Crtc
 
   let active = Property.create_bool "ACTIVE"
 end
@@ -987,7 +1008,7 @@ module Connector = struct
     mm_height : int;
     subpixel : Sub_pixel.t;
     modes : Mode_info.t list;
-    props : Properties.raw_properties;
+    props : Properties.Values.raw;
     encoders : Encoder.id list;
   }
 
@@ -1021,7 +1042,7 @@ module Connector = struct
       t.mm_width t.mm_height
       Sub_pixel.pp t.subpixel
       (pp_limited 4 Mode_info.pp_summary) t.modes
-      Properties.pp_raw t.props
+      Properties.Values.pp_raw t.props
       (Fmt.Dump.option Id.pp) t.encoder_id
       (Fmt.Dump.list Id.pp) t.encoders
 
@@ -1041,7 +1062,7 @@ module Connector = struct
       C.Functions.drmModeFreeConnector c |> Err.ignore;
       x
 
-  let get_properties dev = Properties.get dev Connector
+  let get_properties dev = Properties.Values.get dev Connector
   let crtc_id = Property.create_id_opt "CRTC_ID"
 end
 
@@ -1139,7 +1160,7 @@ module Plane = struct
       ~write:(fun _ _ -> failwith "IN_FORMATS is read-only")
       ~read:(fun _ blob_id -> get_in_formats dev (Id.of_uint64 blob_id))
 
-  let get_properties dev = Properties.get dev Plane
+  let get_properties dev = Properties.Values.get dev Plane
 end
 
 module Fb = struct
@@ -1273,10 +1294,10 @@ module Atomic_req = struct
       Gc.finalise (fun t -> C.Functions.drmModeAtomicFree t |> Err.ignore) t;
       t
 
-  let add_property_full t (obj : _ Properties.t) (property : _ Property.t) value =
-    let obj_id = (obj.id : [< Properties.object_types] Id.t :> Properties.object_types Id.t) in
-    let info = Properties.get_value_info_exn obj property in
-    let cursor = C.Functions.drmModeAtomicAddProperty t obj_id info.id (property.write info.info value) |> Err.ignore in
+  let add_property_full t obj property value =
+    let info = Properties.lookup_property_exn obj property in
+    let obj_id = Id.of_int (obj.id : _ Id.t :> int) in
+    let cursor = C.Functions.drmModeAtomicAddProperty t obj_id info.prop_id (property.write info value) |> Err.ignore in
     if cursor < 0 then Err.report_neg cursor "drmModeAtomicAddProperty" ""
     else cursor
 

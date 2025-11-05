@@ -5,10 +5,10 @@ let println fmt = Fmt.pr (fmt ^^ "@.")
 
 let pp_connector fd f (x : K.Connector.t) =
   if x.connection = Connected then (
-    let props = K.Properties.of_raw fd x.connector_id x.props in
+    let props = K.Properties.Values.of_raw fd x.connector_id x.props in
     Fmt.pf f "%a@,%a"
       K.Connector.pp x
-      K.Properties.pp props
+      K.Properties.Values.pp props
   ) else Fmt.pf f "%a (%a)" K.Connector.pp_name x K.Connector.Connection.pp x.connection
 
 let pp_encoder f (x : K.Encoder.t) =
@@ -24,10 +24,10 @@ let pp_plane fd f (x : K.Plane.t) =
   if x.crtc_id = None then Fmt.pf f "%d (unused)" (x.plane_id :> int)
   else (
     let props = K.Plane.get_properties fd x.plane_id in
-    let in_formats = K.Properties.get_value props (K.Plane.in_formats fd) in
+    let in_formats = K.Properties.Values.get_value props (K.Plane.in_formats fd) in
     Fmt.pf f "%a@,%a@,IN_FORMATS: %a"
       K.Plane.pp x
-      K.Properties.pp props
+      K.Properties.Values.pp props
       (Fmt.Dump.option (Fmt.Dump.list pp_format)) in_formats;
   )
 

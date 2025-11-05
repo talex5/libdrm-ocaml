@@ -207,10 +207,12 @@ module Property : sig
     (string * ([> `Unknown of raw_value] as 'a)) list ->
     (_, 'a) t
   (** [create_enum name values] exposes an enum property using an OCaml variant type. *)
+
+  module Map : Map.S with type key = id
 end
 
 module Properties : sig
-  (** A set of properties attached to an object. *)
+  (** Drivers can add extra properties to objects, discoverable at runtime. *)
 
   module Type : sig
     type _ t =
@@ -227,41 +229,47 @@ module Properties : sig
     val pp : _ t Fmt.t
   end
 
-  type 'a t
+  type 'a metadata
+  (** Metadata about extra properties available on an object. *)
 
-  type object_types = [ `Blob | `Connector | `Crtc | `Encoder | `Fb | `Mode | `Plane | `Property ]
+  val object_id : 'a metadata -> 'a Id.t
 
-  val get : Device.t -> 'a Type.t -> ([< object_types] as 'a) Id.t -> 'a t
-  (** [get dev ty id] gets the propeties for object [id] (of type [ty]).
+  val lookup_property : 'a metadata -> ('a, _) Property.t -> Property.Info.t option
+  (** [lookup_name metadata p] returns information about the property [p]. *)
 
-      Use [Drm.Client_cap.(set atomic) dev true] before calling this to get all the properties. *)
+  module Values : sig
+    type 'a t = private {
+      metadata : 'a metadata;
+      values : Unsigned.UInt64.t Property.Map.t;
+    }
 
-  val object_id : 'a t -> 'a Id.t
+    val get : Device.t -> 'a Type.t -> 'a Id.t -> 'a t
+    (** [get dev ty id] gets the properties (values and types) for object [id] (of type [ty]).
 
-  val get_value : 'a t -> ('a, 'v) Property.t -> 'v option
-  (** [get_value t p] gets the value of [p] (retrieved at the time of the {!get}). *)
+        Use [Drm.Client_cap.(set atomic) dev true] before calling this to get all the properties. *)
 
-  val get_value_exn : 'a t -> ('a, 'v) Property.t -> 'v
+    val get_value : 'a t -> ('a, 'v) Property.t -> 'v option
+    (** [get_value t p] gets the value of [p] (retrieved at the time of the {!get}). *)
 
-  val get_info : _ t -> string -> Property.Info.t option
-  (** [get_info t name] gets the metadata for [name]. *)
+    val get_value_exn : 'a t -> ('a, 'v) Property.t -> 'v
 
-  val pp : _ t Fmt.t [@@ocaml.toplevel_printer]
+    val pp : _ t Fmt.t [@@ocaml.toplevel_printer]
 
-  (** {2 Low-level API} *)
+    (** {2 Low-level API} *)
 
-  type binding = Property.id * Property.raw_value
+    type binding = Property.id * Property.raw_value
 
-  type raw_properties = binding list
+    type raw = binding list
 
-  val pp_binding : binding Fmt.t [@@ocaml.toplevel_printer]
+    val pp_binding : binding Fmt.t [@@ocaml.toplevel_printer]
 
-  val get_raw : Device.t -> 'a Type.t -> ([< object_types] as 'a) Id.t -> raw_properties
-  (** [get_raw dev id ty] returns the raw (id, value) pairs without getting the metadata.
+    val get_raw : Device.t -> 'a Type.t -> 'a Id.t -> raw
+    (** [get_raw dev id ty] returns the raw (id, value) pairs without getting the metadata.
 
-      This isn't very useful, because the IDs aren't standardised, so you usually need the names too. *)
+        This isn't very useful, because the IDs aren't standardised, so you usually need the names too. *)
 
-  val of_raw : Device.t -> 'a Id.t -> raw_properties -> 'a t
+    val of_raw : Device.t -> 'a Id.t -> raw -> 'a t
+  end
 end
 
 module Connector : sig
@@ -323,7 +331,7 @@ module Connector : sig
     mm_height : int;
     subpixel : Sub_pixel.t;
     modes : Mode_info.t list;
-    props : Properties.raw_properties;
+    props : Properties.Values.raw;
     encoders : [`Encoder] Id.t list;
   }
 
@@ -352,7 +360,7 @@ module Connector : sig
   (** {2 Properties} *)
 
   type 'a property = ([`Connector], 'a) Property.t
-  val get_properties : Device.t -> id -> [`Connector] Properties.t
+  val get_properties : Device.t -> id -> [`Connector] Properties.Values.t
 
   val crtc_id : [`Crtc] Id.t option property
 end
@@ -475,7 +483,7 @@ module Crtc : sig
   (** {2 Properties} *)
 
   type 'a property = ([`Crtc], 'a) Property.t
-  val get_properties : Device.t -> id -> [`Crtc] Properties.t
+  val get_properties : Device.t -> id -> [`Crtc] Properties.Values.t
 
   val active : bool property
 end
@@ -511,7 +519,7 @@ module Plane : sig
   (** {2 Properties} *)
 
   type 'a property = ([`Plane], 'a) Property.t
-  val get_properties : Device.t -> id -> [`Plane] Properties.t
+  val get_properties : Device.t -> id -> [`Plane] Properties.Values.t
 
   val typ : [`Cursor | `Overlay | `Primary | `Unknown of Property.raw_value] property
   val fb_id : [`Fb] Id.t option property
@@ -582,9 +590,9 @@ module Atomic_req : sig
 
   val create : unit -> t
 
-  val add_property : t -> [< Properties.object_types ] Properties.t -> ('a, 'v) Property.t -> 'v -> unit
+  val add_property : t -> 'a Properties.metadata -> ('a, 'v) Property.t -> 'v -> unit
 
-  val add_property_full : t -> [< Properties.object_types ] Properties.t -> ('a, 'v) Property.t -> 'v -> int
+  val add_property_full : t -> 'a Properties.metadata -> ('a, 'v) Property.t -> 'v -> int
 
   val commit :
     ?page_flip_event : bool ->

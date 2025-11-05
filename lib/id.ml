@@ -26,3 +26,5 @@ let of_uint64_opt x =
   else Some (of_uint64 x)
 
 let pp = Fmt.int
+
+let compare = Int.compare

@@ -19,3 +19,5 @@ val to_uint64 : _ t -> Unsigned.UInt64.t
 val to_uint64_opt : _ t option -> Unsigned.UInt64.t
 
 val pp : _ t Fmt.t
+
+val compare : 'a t -> 'a t -> int

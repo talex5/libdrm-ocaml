@@ -9,7 +9,7 @@ let find_plane dev ~crtc_idx =
     let plane = K.Plane.get dev plane_id in
     if plane.possible_crtcs land (1 lsl crtc_idx) <> 0 then (
       let props = K.Plane.get_properties dev plane_id in
-      match K.Properties.get_value props K.Plane.typ with
+      match K.Properties.Values.get_value props K.Plane.typ with
       | Some `Primary -> Some props
       | _ -> None
     ) else None
@@ -18,7 +18,7 @@ let find_plane dev ~crtc_idx =
 
 let show_test_page (t : Resources.t) rq (c : K.Connector.t) =
   let obj = K.Connector.get_properties t.dev c.connector_id in
-  match K.Properties.get_value_exn obj K.Connector.crtc_id with
+  match K.Properties.Values.get_value_exn obj K.Connector.crtc_id with
   | None -> Fmt.failwith "Connector %a has no CRTC" Drm.Id.pp c.connector_id
   | Some crtc_id ->
     println "Preparing settings for %a" K.Connector.pp_name c;
@@ -33,9 +33,9 @@ let show_test_page (t : Resources.t) rq (c : K.Connector.t) =
           Drm.Id.pp crtc_id
           crtc_idx
     in
-    println "Using plane %a" Drm.Id.pp (K.Properties.object_id plane);     (* todo: already used? *)
+    println "Using plane %a" Drm.Id.pp (K.Properties.object_id plane.metadata);     (* todo: already used? *)
     let fb = Test_image.create t.dev size in
-    K.Atomic_req.add_property rq plane K.Plane.fb_id (Some fb)
+    K.Atomic_req.add_property rq plane.metadata K.Plane.fb_id (Some fb)
 
 let () =
   Utils.with_device @@ fun t ->
