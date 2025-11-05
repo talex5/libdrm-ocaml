@@ -570,7 +570,7 @@ module Encoder : sig
 end
 
 module Resources : sig
-  (** The set of resources provided by the hardware (excluding {!Plane_resources}). *)
+  (** The set of resources provided by the hardware (excluding planes; see {!Plane.list}). *)
 
   type t = {
     fbs : Fb.id list;

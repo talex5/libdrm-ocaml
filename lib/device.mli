@@ -3,7 +3,7 @@
 type t = Unix.file_descr
 (** Typically a device inside the [/dev/dri/] directory.
     
-    Use {!Drm.get_devices} to find devices. *)
+    Use {!list} to find devices. *)
 
 val is_kms : t -> bool
 (** Whether this device supports the {!Kms} API. *)
