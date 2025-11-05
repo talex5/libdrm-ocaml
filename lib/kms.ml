@@ -408,7 +408,7 @@ module Blob = struct
       C.Functions.drmModeFreePropertyBlob c |> Err.ignore;
       Some x
     | None, errno ->
-      match Err.code_of_errno errno with
+      match Err.error_of_errno errno with
       | ENOENT -> None
       | code -> raise (Unix.Unix_error (code, "drmModeFreePropertyBlob", ""))
 end

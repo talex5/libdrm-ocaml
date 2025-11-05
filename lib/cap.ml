@@ -11,7 +11,7 @@ let get (type a) ((ty : a ty), cap) fd : (a, Unix.error) result =
     | Int -> Ok v
     | Bool -> Ok (v <> 0)
   ) else (
-    Error (Err.code_of_errno errno)
+    Error (Err.error_of_errno errno)
   )
 
 let get_exn t fd =

@@ -96,6 +96,8 @@ module Functions (F : FOREIGN) = struct
   let drmModeFormatModifierBlobIterNext = foreign "drmModeFormatModifierBlobIterNext"
       (ptr (const DrmModePropertyBlob.t) @-> ptr DrmModeFormatModifierIterator.t @-> returning bool)
 
+  let drmCheckModesettingSupported = foreign "drmCheckModesettingSupported" (string @-> returning int)
+
   (* Atomic KMS *)
 
   let drmModeAtomicAlloc = foreign "drmModeAtomicAlloc" (void @-> returning AtomicReqPtr.t_opt)

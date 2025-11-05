@@ -99,3 +99,8 @@ val list : ?get_pci_revision:bool -> unit -> Info.t list
 
     @param get_pci_revision If [false], skip getting the PCI device revision field.
                             The default is [true]. *)
+
+val check_modesetting_supported : string -> (unit, Unix.error) result
+(** [check_modesetting_supported busid] checks if a modesetting capable driver has attached to the PCI ID [busid].
+
+    Returns {!Unix.EINVAL} for invalid bus id and {!Unix.ENOSYS} if no modesetting support. *)

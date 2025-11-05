@@ -9,7 +9,7 @@ let set cap fd value =
   in
   match C.Functions.drmSetClientCap fd cap (Unsigned.UInt64.of_int value) with
   | 0, _ -> Ok ()
-  | _, errno -> Error (Err.code_of_errno errno)
+  | _, errno -> Error (Err.error_of_errno errno)
 
 let set_exn cap fd value =
   match set cap fd value with

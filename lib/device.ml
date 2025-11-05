@@ -268,4 +268,10 @@ end
 
 let is_kms t = C.Functions.drmIsKMS t |> Err.ignore
 let is_master t = C.Functions.drmIsMaster t |> Err.ignore
+
+let check_modesetting_supported busid =
+  match C.Functions.drmCheckModesettingSupported busid |> Err.ignore with
+  | 0 -> Ok ()
+  | err -> Error (Err.error_of_neg err)
+
 let list = Info.get_devices
