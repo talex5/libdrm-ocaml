@@ -476,7 +476,50 @@ module Crtc : sig
   val set : Device.t -> id -> ?fb:Fb.id -> pos:int * int -> connectors:[`Connector] Id.t list -> Mode_info.t option -> unit
   (** The old non-atomic API. *)
 
-  val page_flip : ?event:bool -> Device.t -> id -> user_data:unit Ctypes_static.ptr -> Fb.id -> unit
+  val page_flip :
+    ?event:nativeint ->
+    ?async:bool ->
+    ?target:([`None | `Absolute of Unsigned.UInt32.t | `Relative of int]) ->
+    Device.t -> id ->
+    Fb.id -> unit
+  (** [page_flip dev id fb] asks KMS to schedule a page flip for CRTC [id].
+
+      Once any pending rendering targeting [fb] (as of ioctl time) has
+      completed, the CRTC will be reprogrammed to display [fb] after the next
+      vertical refresh. The call returns immediately, but subsequent rendering
+      to the current fb will block in the execbuffer ioctl until the page flip
+      happens. If a page flip is already pending as the ioctl is called,
+      {!Unix.EBUSY} will be raised.
+
+      @param event Requests that drm sends back an event when the page
+                   flip is done. The event data will be returned as the
+                   [user_data] argument for {!Event.vblank_handler}.
+
+      @param async Requests that the flip happen 'as soon as possible', meaning
+                   that it not delay waiting for vblank. This may cause tearing
+                   on the screen.
+
+      @param target If [`Absolute seq], [seq] denotes the absolute vblank
+                    sequence when the flip should take effect.
+                    If [`Relative seq], [seq] denotes the relative (to the
+                    current one when the ioctl is called) vblank sequence when
+                    the flip should take effect ([seq] must be 0 or 1).
+                    [`None] is the same as [`Relative 1], unless [async] is true,
+                    in which case it behaves as [`Relative 0].
+
+                    [?target] is merely to clarify the target for when code
+                    dealing with a page flip runs during a vertical blank period. *)
+
+  val queue_sequence :
+    ?next_on_miss:bool ->
+    user_data:nativeint ->
+    Device.t -> id -> [`Absolute of Unsigned.UInt64.t | `Relative of int] ->
+    Unsigned.UInt64.t
+  (** Queue an event to be delivered at the specified sequence. The timestamp
+      marks when the first pixel of the refresh cycle leaves the display engine
+      for the display.
+
+      @param next_on_miss Use next sequence if we've missed. *)
 
   val set_cursor : Device.t -> id -> ?hot:(int * int) -> size:(int * int) -> Buffer.id option -> unit
   val move_cursor : Device.t -> id -> int * int -> unit
@@ -606,10 +649,10 @@ module Atomic_req : sig
   val add_property_full : t -> 'a Properties.metadata -> ('a, 'v) Property.t -> 'v -> int
 
   val commit :
-    ?page_flip_event : bool ->
-    ?page_flip_async : bool ->
-    ?test_only : bool ->
-    ?nonblock : bool ->
-    ?allow_modeset : bool ->
+    ?page_flip_event:nativeint ->
+    ?page_flip_async:bool ->
+    ?test_only:bool ->
+    ?nonblock:bool ->
+    ?allow_modeset:bool ->
     Device.t -> t -> unit
 end

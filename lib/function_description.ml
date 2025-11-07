@@ -85,7 +85,13 @@ module Functions (F : FOREIGN) = struct
       (fd @-> crtc_id @-> fb_id_opt @-> dim @-> dim @-> ptr connector_id @-> int @-> ptr_opt DrmModeModeInfo.t @-> returning int)
 
   let drmModePageFlip = foreign "drmModePageFlip"
-      (fd @-> crtc_id @-> fb_id @-> flags32 @-> ptr void @-> returning int)
+      (fd @-> crtc_id @-> fb_id @-> flags32 @-> userdata_voidp @-> returning int)
+
+  let drmModePageFlipTarget = foreign "drmModePageFlipTarget"
+      (fd @-> crtc_id @-> fb_id @-> flags32 @-> userdata_voidp @-> uint32_t @-> returning int)
+
+  let drmCrtcQueueSequence = foreign "drmCrtcQueueSequence"
+      (fd @-> crtc_id @-> flags32 @-> uint64_t @-> ptr_opt uint64_t @-> userdata_uint64 @-> returning int)
 
   let drmModeMapDumbBuffer = foreign "drmModeMapDumbBuffer" (fd @-> buffer_id @-> ptr uint64_t @-> returning int)
 
@@ -113,5 +119,5 @@ module Functions (F : FOREIGN) = struct
   let drmModeAtomicAlloc = foreign "drmModeAtomicAlloc" (void @-> returning AtomicReqPtr.t_opt)
   let drmModeAtomicFree = foreign "drmModeAtomicFree" (AtomicReqPtr.t @-> returning void)
   let drmModeAtomicAddProperty = foreign "drmModeAtomicAddProperty" (AtomicReqPtr.t @-> object_id @-> property_id @-> uint64_t @-> returning int)
-  let drmModeAtomicCommit = foreign "drmModeAtomicCommit" (fd @-> AtomicReqPtr.t @-> flags32 @-> ptr void @-> returning int)
+  let drmModeAtomicCommit = foreign "drmModeAtomicCommit" (fd @-> AtomicReqPtr.t @-> flags32 @-> userdata_voidp @-> returning int)
 end

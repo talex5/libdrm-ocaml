@@ -12,3 +12,4 @@ module Fourcc = Fourcc
 module Modifier = Modifier
 module Dev_t = Dev_t
 module Dmabuf = Dmabuf
+module Event = Event

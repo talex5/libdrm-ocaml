@@ -158,7 +158,7 @@ lines.append('end')
 
 if str_ty == "structure":
     lines.append('')
-    assert module_name.startswith('Drm'), module_name
+    assert module_name.lower().startswith('drm'), module_name
     lines.append(f"module {module_name[3:]} = struct")
     lines.append(f"  open CT.{module_name}")
     lines.append('  type t = {')

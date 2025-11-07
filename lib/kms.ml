@@ -777,11 +777,44 @@ module Crtc = struct
     | 0, _ -> ()
     | _, errno -> Err.report errno "drmModeSetCrtc" ""
 
-  let page_flip ?(event=false) fd id ~user_data fb =
-    let flags = if event then CT.PageFlipFlags.event else U32.zero in
+  let page_flip_target fd id ~flags ~user_data ~target fb =
+    match C.Functions.drmModePageFlipTarget fd id fb flags user_data target with
+    | 0, _ -> ()
+    | _, errno -> Err.report errno "drmModePageFlipTarget" ""
+
+  let page_flip_no_target fd id ~flags ~user_data fb =
     match C.Functions.drmModePageFlip fd id fb flags user_data with
     | 0, _ -> ()
     | _, errno -> Err.report errno "drmModePageFlip" ""
+
+  let page_flip ?event ?(async=false) ?(target=`None) fd id fb =
+    let ( ++ ) = U32.logor in
+    let flags, user_data =
+      match event with
+      | None -> U32.zero, 0n
+      | Some user_data -> CT.PageFlipFlags.event, user_data
+    in
+    let flags = if async then flags ++ CT.PageFlipFlags.async else flags in
+    match target with
+    | `None -> page_flip_no_target fd id ~flags ~user_data fb
+    | `Absolute target ->
+      page_flip_target fd id ~flags:(flags ++ CT.PageFlipFlags.target_absolute) ~user_data ~target fb
+    | `Relative target ->
+      let target = U32.of_int target in
+      page_flip_target fd id ~flags:(flags ++ CT.PageFlipFlags.target_relative) ~user_data ~target fb
+
+  let queue_sequence ?(next_on_miss=false) ~user_data fd id sequence =
+    let sequence_queued = Ctypes.(allocate uint64_t) U64.zero in
+    let ( ++ ) = U32.logor in
+    let flags = if next_on_miss then CT.CrtcSequenceFlags.next_on_miss else U32.zero in
+    let flags, sequence =
+      match sequence with
+      | `Absolute seq -> flags, seq
+      | `Relative seq -> flags ++ CT.CrtcSequenceFlags.relative, U64.of_int seq
+    in
+    match C.Functions.drmCrtcQueueSequence fd id flags sequence (Some sequence_queued) user_data with
+    | 0, _ -> !@ sequence_queued
+    | _, errno -> Err.report errno "drmCrtcQueueSequence" ""
 
   let set_cursor fd id ?hot ~size:(width, height) handle =
     match hot with
@@ -1343,7 +1376,7 @@ module Atomic_req = struct
     else x
 
   let commit
-      ?(page_flip_event=false)
+      ?page_flip_event
       ?(page_flip_async=false)
       ?(test_only= false)
       ?(nonblock=false)
@@ -1351,13 +1384,13 @@ module Atomic_req = struct
       dev t =
     let flags =
       U32.zero
-      |> flag page_flip_event CT.PageFlipFlags.event
+      |> flag (page_flip_event <> None) CT.PageFlipFlags.event
       |> flag page_flip_async CT.PageFlipFlags.async
       |> flag test_only CT.AtomicFlags.test_only
       |> flag nonblock CT.AtomicFlags.nonblock
       |> flag allow_modeset CT.AtomicFlags.allow_modeset
     in
-    let user_data = Ctypes.null in
+    let user_data = Option.value page_flip_event ~default:0n in
     match C.Functions.drmModeAtomicCommit dev t flags user_data with
     | 0, _ -> ()
     | _, errno -> Err.report errno "drmModeAtomicCommit" ""

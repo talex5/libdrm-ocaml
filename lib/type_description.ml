@@ -34,6 +34,16 @@ module Types (F : TYPE) = struct
   let int_uint16 = view ~read:Unsigned.UInt16.to_int ~write:Unsigned.UInt16.of_int uint16_t
   let int_ushort = view ~read:Unsigned.UShort.to_int ~write:Unsigned.UShort.of_int ushort
 
+  (* libdrm takes userdata as void*, but returns it as uint64.
+     OCaml's nativeint seems the best for this, as it's defined to be the same width
+     as a C pointer. Since user-data always comes from the application originally,
+     the conversion from 64-bit to nativeint shouldn't be a problem. *)
+  let userdata_voidp = view ~read:Ctypes.raw_address_of_ptr ~write:Ctypes.ptr_of_raw_address (ptr void)
+  let userdata_uint64 =
+    view uint64_t
+      ~read:(fun x -> Unsigned.UInt64.to_int64 x |> Int64.to_nativeint)
+      ~write:(fun x -> Int64.of_nativeint x |> Unsigned.UInt64.of_int64)
+
   (* On 64-bit systems, we can always represent 32-bit C ints as plain OCaml ints.
      On 32-bit systems, most values should also fit in a 31-bit OCaml int. *)
   let int_uint32 = view ~read:Unsigned.UInt32.to_int ~write:Unsigned.UInt32.of_int uint32_t
@@ -56,6 +66,13 @@ module Types (F : TYPE) = struct
   module PageFlipFlags = struct
     let event = constant "DRM_MODE_PAGE_FLIP_EVENT" uint32_t
     let async = constant "DRM_MODE_PAGE_FLIP_ASYNC" uint32_t
+    let target_absolute = constant "DRM_MODE_PAGE_FLIP_TARGET_ABSOLUTE" uint32_t
+    let target_relative = constant "DRM_MODE_PAGE_FLIP_TARGET_RELATIVE" uint32_t
+  end
+
+  module CrtcSequenceFlags = struct
+    let relative = constant "DRM_CRTC_SEQUENCE_RELATIVE" uint32_t
+    let next_on_miss = constant "DRM_CRTC_SEQUENCE_NEXT_ON_MISS" uint32_t
   end
 
   module FbFlags = struct
@@ -658,6 +675,48 @@ module Types (F : TYPE) = struct
     let y1 = F.field t "y1" int_ushort
     let x2 = F.field t "x2" int_ushort
     let y2 = F.field t "y2" int_ushort
+    let () = F.seal t
+  end
+
+  module Drm_event_type = struct
+    let vblank = constant "DRM_EVENT_VBLANK" uint32_t
+    let flip_complete = constant "DRM_EVENT_FLIP_COMPLETE" uint32_t
+    let crtc_sequence = constant "DRM_EVENT_CRTC_SEQUENCE" uint32_t
+  end
+
+  module Drm_event = struct
+    type mark
+    type ctype = mark Ctypes.structure
+    let t : ctype F.typ = F.structure "drm_event"
+
+    let typ = F.field t "type" uint32_t
+    let length = F.field t "length" int_uint32
+    let () = F.seal t
+  end
+
+  module Drm_event_vblank = struct
+    type mark
+    type ctype = mark Ctypes.structure
+    let t : ctype F.typ = F.structure "drm_event_vblank"
+
+    let base = F.field t "base" Drm_event.t
+    let user_data = F.field t "user_data" userdata_uint64
+    let tv_sec = F.field t "tv_sec" uint32_t
+    let tv_usec = F.field t "tv_usec" int_uint32
+    let sequence = F.field t "sequence" uint32_t
+    let crtc_id = F.field t "crtc_id" crtc_id
+    let () = F.seal t
+  end
+
+  module Drm_event_crtc_sequence = struct
+    type mark
+    type ctype = mark Ctypes.structure
+    let t : ctype F.typ = F.structure "drm_event_crtc_sequence"
+
+    let base = F.field t "base" Drm_event.t
+    let user_data = F.field t "user_data" userdata_uint64
+    let time_ns = F.field t "time_ns" int64_t
+    let sequence = F.field t "sequence" uint64_t
     let () = F.seal t
   end
 end
