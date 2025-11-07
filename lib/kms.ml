@@ -1193,6 +1193,14 @@ module Plane = struct
       C.Functions.drmModeFreePlane c |> Err.ignore;
       x
 
+  type region = { x : int; y : int; w : int; h : int }
+
+  let set dev id ~crtc ~fb ~src ~dst =
+    let flags = U32.zero in     (* These appear to be unused *)
+    match C.Functions.drmModeSetPlane dev id crtc fb flags dst.x dst.y dst.w dst.h src.x src.y src.w src.h with
+    | 0, _ -> ()
+    | _, errno -> Err.report errno "drmModeSetPlane" ""
+
   let fb_id = Property.create_id_opt "FB_ID"
 
   let typ =

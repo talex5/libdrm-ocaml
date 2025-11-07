@@ -47,6 +47,7 @@ module Types (F : TYPE) = struct
   (* On 64-bit systems, we can always represent 32-bit C ints as plain OCaml ints.
      On 32-bit systems, most values should also fit in a 31-bit OCaml int. *)
   let int_uint32 = view ~read:Unsigned.UInt32.to_int ~write:Unsigned.UInt32.of_int uint32_t
+  let int_int32 = view ~read:Int32.to_int ~write:Int32.of_int int32_t
   let dim = int_uint32
   let pitch = int_uint32
   let offset = int_uint32

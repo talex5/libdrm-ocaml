@@ -114,6 +114,12 @@ module Functions (F : FOREIGN) = struct
        ptr int_uint16 @-> ptr int_uint16 @-> ptr int_uint16 @->
        returning int)
 
+  let drmModeSetPlane = foreign "drmModeSetPlane"
+      (fd @-> plane_id @-> crtc_id @-> fb_id @-> flags32 @->
+       int_int32 @-> int_int32 @-> int_uint32 @-> int_uint32 @->
+       int_uint32 @-> int_uint32 @-> int_uint32 @-> int_uint32 @->
+       returning int)
+
   (* Atomic KMS *)
 
   let drmModeAtomicAlloc = foreign "drmModeAtomicAlloc" (void @-> returning AtomicReqPtr.t_opt)

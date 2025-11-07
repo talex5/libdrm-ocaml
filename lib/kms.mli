@@ -568,6 +568,13 @@ module Plane : sig
 
   val id : t -> id
 
+  type region = { x : int; y : int; w : int; h : int }
+
+  val set : Device.t -> id -> crtc:Crtc.id -> fb:Fb.id -> src:region -> dst:region -> unit
+  (** [set dev id ~crtc ~fb ~src ~dst] sets plane [id] to show [fb] region [src] on [crtc] at [dst].
+
+      Warning: [src] values are in 16.16 format! *)
+
   val pp : t Fmt.t [@@ocaml.toplevel_printer]
 
   (** {2 Properties} *)
