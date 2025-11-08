@@ -549,6 +549,27 @@ module Property = struct
   let create_bool name =
     create ~read:(fun _ x -> x <> U64.zero) ~write:(fun _ v -> U64.of_int (Bool.to_int v)) name
 
+  let create_int name =
+    create ~read:(fun _ -> U64.to_int) ~write:(fun _ -> U64.of_int) name
+
+  let create_fixed name =
+    create name
+      ~read:(fun _ x -> Ufixed.of_bits (U64.to_uint32 x))
+      ~write:(fun _ x -> U64.of_uint32 (Ufixed.to_bits x))
+
+  let create_fd_opt name =
+    create name
+      ~read:(fun _ x ->
+          let x = U64.to_int x in
+          if x = -1 then None
+          else Some (Type_description.unix_of_int x)
+        )
+      ~write:(fun _ x ->
+          match x with
+          | None -> U64.of_int (-1)
+          | Some x -> U64.of_int (Type_description.int_of_unix x)
+        )
+
   let create_enum name enum_values =
     let read (info : Info.t) x =
       match info.ty with
@@ -1211,6 +1232,18 @@ module Plane = struct
     ]
 
   let crtc_id = Property.create_id_opt "CRTC_ID"
+
+  let crtc_x = Property.create_int "CRTC_X"
+  let crtc_y = Property.create_int "CRTC_Y"
+  let crtc_w = Property.create_int "CRTC_W"
+  let crtc_h = Property.create_int "CRTC_H"
+
+  let src_x = Property.create_fixed "SRC_X"
+  let src_y = Property.create_fixed "SRC_Y"
+  let src_w = Property.create_fixed "SRC_W"
+  let src_h = Property.create_fixed "SRC_H"
+
+  let in_fence_fd = Property.create_fd_opt "IN_FENCE_FD"
 
   let get_in_formats dev blob_id =
     match C.Functions.drmModeGetPropertyBlob dev blob_id with

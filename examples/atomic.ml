@@ -35,7 +35,19 @@ let show_test_page (t : Resources.t) rq (c : K.Connector.t) =
     in
     println "Using plane %a" Drm.Id.pp (K.Properties.object_id plane);     (* todo: already used? *)
     let fb = Test_image.create t.dev size in
-    K.Atomic_req.add_property rq plane K.Plane.fb_id (Some fb)
+    let ( .%{}<- ) obj prop value = K.Atomic_req.add_property rq obj prop value in
+    plane.%{ K.Plane.fb_id } <- Some fb;
+    (* Source region on frame-buffer: *)
+    plane.%{ K.Plane.src_x } <- Drm.Ufixed.of_int 0;
+    plane.%{ K.Plane.src_y } <- Drm.Ufixed.of_int 0;
+    plane.%{ K.Plane.src_w } <- Drm.Ufixed.of_int (fst size);
+    plane.%{ K.Plane.src_h } <- Drm.Ufixed.of_int (snd size);
+    (* Destination region on CRTC: *)
+    plane.%{ K.Plane.crtc_x } <- 0;
+    plane.%{ K.Plane.crtc_y } <- 0;
+    plane.%{ K.Plane.crtc_w } <- fst size;
+    plane.%{ K.Plane.crtc_h } <- snd size;
+    ()
 
 let () =
   Utils.with_device @@ fun t ->

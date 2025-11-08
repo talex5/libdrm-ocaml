@@ -196,6 +196,10 @@ module Property : sig
   val create_bool : string -> (_, bool) t
   (** [create_bool name] is a property whose value is 0 or 1/non-zero for true. *)
 
+  val create_int : string -> (_, int) t
+
+  val create_fixed : string -> (_, Ufixed.t) t
+
   val create_id : string -> (_, _ Id.t) t
   (** [create_id name] is a property whose value is an object ID. *)
 
@@ -583,7 +587,20 @@ module Plane : sig
   val typ : [`Cursor | `Overlay | `Primary | `Unknown of Property.raw_value] property
   val fb_id : [`Fb] Id.t option property
   val crtc_id : [`Crtc] Id.t option property
+
+  val crtc_x : int property
+  val crtc_y : int property
+  val crtc_w : int property
+  val crtc_h : int property
+
+  val src_x : Ufixed.t property
+  val src_y : Ufixed.t property
+  val src_w : Ufixed.t property
+  val src_h : Ufixed.t property
+
   val in_formats : Device.t -> (Fourcc.t * Modifier.t) list property
+
+  val in_fence_fd : Unix.file_descr option property
 end
 
 module Encoder : sig

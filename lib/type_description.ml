@@ -1,10 +1,10 @@
 open Ctypes
 
+let int_of_unix (fd : Unix.file_descr) : int = Obj.magic fd
+let unix_of_int (fd : int) : Unix.file_descr = assert (fd >= 0); Obj.magic fd
+
 module Types (F : TYPE) = struct
   open F
-
-  let int_of_unix (fd : Unix.file_descr) : int = Obj.magic fd
-  let unix_of_int (fd : int) : Unix.file_descr = assert (fd >= 0); Obj.magic fd
 
   let fd = view ~read:unix_of_int ~write:int_of_unix int
 
