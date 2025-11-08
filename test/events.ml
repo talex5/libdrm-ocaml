@@ -14,10 +14,5 @@ let test_sync dev =
     println "Queued event for sequence %a" Unsigned.UInt64.pp seq;
     let buffer = Drm.Event.create_buffer () in
     let got = Unix.read_bigarray dev buffer 0 (Bigarray.Array1.dim buffer) in
-    Drm.Event.parse buffer got
-      ~sequence_handler:(fun ~sequence ~time_ns ~user_data ->
-          println "Got event at sequence %a at %a (user_data = %nd)"
-            Unsigned.UInt64.pp sequence
-            Unsigned.UInt64.pp time_ns
-            user_data
-        ) 
+    let events = Drm.Event.parse buffer got in
+    println "Events: %a" (Fmt.Dump.list Drm.Event.pp) events

@@ -2,32 +2,41 @@
 
 type buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
-type vblank_handler =
-  sequence:Unsigned.UInt32.t ->
-  tv_sec:Unsigned.UInt32.t ->
-  tv_usec:int ->
-  crtc_id:Kms.Crtc.id ->
-  user_data:nativeint ->
-  unit
+module Vblank : sig
+  type t = {
+    sequence : Unsigned.UInt32.t;
+    tv_sec : Unsigned.UInt32.t;
+    tv_usec : int;
+    crtc_id : Kms.Crtc.id;
+    user_data : nativeint;
+  }
 
-type sequence_handler =
-  sequence:Unsigned.UInt64.t ->
-  time_ns:Unsigned.UInt64.t ->
-  user_data:nativeint ->
-  unit
+  val pp : t Fmt.t
+end
+
+module Crtc_sequence : sig
+  type t = {
+    sequence : Unsigned.UInt64.t;
+    time_ns : Unsigned.UInt64.t;
+    user_data : nativeint;
+  }
+
+  val pp : t Fmt.t
+end
+
+type t =
+  | Vblank of Vblank.t
+  | Flip_complete of Vblank.t
+  | Crtc_sequence of Crtc_sequence.t
+  | Unknown of Unsigned.UInt32.t
+
+val pp : t Fmt.t
 
 val create_buffer : unit -> buffer
 (** [create_buffer ()] creates a buffer of a suitable size. *)
 
-val parse :
-  ?vblank:vblank_handler ->
-  ?flip_complete:vblank_handler ->
-  ?sequence_handler:sequence_handler ->
-  ?unknown_event:(Unsigned.UInt32.t -> unit) ->
-  buffer -> int -> unit
-(** [parse buffer len] iterates through the events in [buffer], calling the appropriate handlers.
-
-    If no handler is given for an event then the event is skipped.
+val parse : buffer -> int -> t list
+(** [parse buffer len cb] parses the events in the first [n] bytes of [buffer].
 
     Hint: you can use [let len = Unix.read_bigarray dev buffer 0 (Bigarray.Array1.dim buffer)] to
     read events into the buffer. The buffer must contain only complete events,
