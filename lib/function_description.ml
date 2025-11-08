@@ -126,4 +126,7 @@ module Functions (F : FOREIGN) = struct
   let drmModeAtomicFree = foreign "drmModeAtomicFree" (AtomicReqPtr.t @-> returning void)
   let drmModeAtomicAddProperty = foreign "drmModeAtomicAddProperty" (AtomicReqPtr.t @-> object_id @-> property_id @-> uint64_t @-> returning int)
   let drmModeAtomicCommit = foreign "drmModeAtomicCommit" (fd @-> AtomicReqPtr.t @-> flags32 @-> userdata_voidp @-> returning int)
+  let drmModeAtomicDuplicate = foreign "drmModeAtomicDuplicate" (AtomicReqPtr.t @-> returning AtomicReqPtr.t_opt)
+  let drmModeAtomicMerge = foreign "drmModeAtomicMerge" (AtomicReqPtr.t @-> AtomicReqPtr.t @-> returning int)
+  let drmModeAtomicGetCursor = foreign "drmModeAtomicGetCursor" (AtomicReqPtr.t @-> returning int)
 end

@@ -1402,4 +1402,19 @@ module Atomic_req = struct
     match C.Functions.drmModeAtomicCommit dev t flags user_data with
     | 0, _ -> ()
     | _, errno -> Err.report errno "drmModeAtomicCommit" ""
+
+  let duplicate t =
+    match C.Functions.drmModeAtomicDuplicate t with
+    | Some t', _ ->
+      Gc.finalise (fun t' -> C.Functions.drmModeAtomicFree t' |> Err.ignore) t';
+      t'
+    | None, errno -> Err.report errno "drmModeAtomicDuplicate" ""
+    
+  let merge t arg =
+    match C.Functions.drmModeAtomicMerge t arg |> Err.ignore with
+    | 0 -> ()
+    | code -> Err.report_neg code "drmModeAtomicMerge" ""
+
+  let get_cursor t =
+    C.Functions.drmModeAtomicGetCursor t |> Err.ignore
 end

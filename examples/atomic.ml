@@ -10,7 +10,7 @@ let find_plane dev ~crtc_idx =
     if plane.possible_crtcs land (1 lsl crtc_idx) <> 0 then (
       let props = K.Plane.get_properties dev plane_id in
       match K.Properties.Values.get_value props K.Plane.typ with
-      | Some `Primary -> Some props
+      | Some `Primary -> Some props.metadata
       | _ -> None
     ) else None
   in
@@ -33,9 +33,9 @@ let show_test_page (t : Resources.t) rq (c : K.Connector.t) =
           Drm.Id.pp crtc_id
           crtc_idx
     in
-    println "Using plane %a" Drm.Id.pp (K.Properties.object_id plane.metadata);     (* todo: already used? *)
+    println "Using plane %a" Drm.Id.pp (K.Properties.object_id plane);     (* todo: already used? *)
     let fb = Test_image.create t.dev size in
-    K.Atomic_req.add_property rq plane.metadata K.Plane.fb_id (Some fb)
+    K.Atomic_req.add_property rq plane K.Plane.fb_id (Some fb)
 
 let () =
   Utils.with_device @@ fun t ->
@@ -46,7 +46,7 @@ let () =
   List.iter (show_test_page t rq) connected;
   println "Checking that commit will work...";
   match K.Atomic_req.commit ~test_only:true t.dev rq with
-  | exception Unix.Unix_error (code, "drmModeAtomicCommit", _) ->
+  | exception Unix.Unix_error (code, _, _) ->
     println "Mode-setting would fail with error: %s" (Unix.error_message code)
   | () ->
     println "Pre-commit test passed.";

@@ -648,12 +648,13 @@ module Atomic_req : sig
   (** Atomic requests. *)
 
   type t
+  (** A dynamic array of (object_id, property_id, value) items. *)
 
   val create : unit -> t
+  (** [create ()] is a fresh empty array. *)
 
   val add_property : t -> 'a Properties.metadata -> ('a, 'v) Property.t -> 'v -> unit
-
-  val add_property_full : t -> 'a Properties.metadata -> ('a, 'v) Property.t -> 'v -> int
+  (** [add_property t meta prop value] appends one item to [t]. *)
 
   val commit :
     ?page_flip_event:nativeint ->
@@ -662,4 +663,14 @@ module Atomic_req : sig
     ?nonblock:bool ->
     ?allow_modeset:bool ->
     Device.t -> t -> unit
+  (** [commit dev t] atomically applies all the changes in [t]. *)
+
+  val duplicate : t -> t
+  (** [duplicate t] is a copy of [t]. *)
+    
+  val merge : t -> t -> unit
+  (** [merge t arg] appends a copy of each element of [arg] to [t]. *)
+
+  val get_cursor : t -> int
+  (** [get_cursor t] is the number of allocated items in [t]. *)
 end
