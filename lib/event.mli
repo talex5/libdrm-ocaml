@@ -28,7 +28,7 @@ type t =
   | Vblank of Vblank.t
   | Flip_complete of Vblank.t
   | Crtc_sequence of Crtc_sequence.t
-  | Unknown of Unsigned.UInt32.t
+  | Unknown of Unsigned.UInt32.t * char Ctypes.CArray.t
 
 val pp : t Fmt.t
 

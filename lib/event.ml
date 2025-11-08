@@ -62,13 +62,13 @@ type t =
   | Vblank of Vblank.t
   | Flip_complete of Vblank.t
   | Crtc_sequence of Crtc_sequence.t
-  | Unknown of Unsigned.UInt32.t
+  | Unknown of Unsigned.UInt32.t * char Ctypes.CArray.t
 
 let pp f = function
   | Vblank e -> Fmt.pf f "Vblank %a" Vblank.pp e
   | Flip_complete e -> Fmt.pf f "Flip_complete %a" Vblank.pp e
   | Crtc_sequence e -> Fmt.pf f "Crtc_sequence %a" Crtc_sequence.pp e
-  | Unknown x -> Fmt.pf f "Unknown %a" Unsigned.UInt32.pp x
+  | Unknown (x, _) -> Fmt.pf f "Unknown event (type %a)" Unsigned.UInt32.pp x
 
 let create_buffer () = Bigarray.Array1.create Char C_layout 1024
 
@@ -86,7 +86,7 @@ let parse buffer len =
         if event_type = T.vblank then Vblank (Vblank.of_c event_data)
         else if event_type = T.flip_complete then Flip_complete (Vblank.of_c event_data)
         else if event_type = T.crtc_sequence then Crtc_sequence (Crtc_sequence.of_c event_data)
-        else Unknown event_type
+        else Unknown (event_type, event_data)
       in
       let buffer = Ctypes.CArray.sub buffer ~pos:event_len ~length:(Ctypes.CArray.length buffer - event_len) in
       event :: aux buffer
