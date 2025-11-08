@@ -881,6 +881,33 @@ module Crtc = struct
   let get_properties dev = Properties.Values.get dev Crtc
 
   let active = Property.create_bool "ACTIVE"
+  let mode_id = Property.create_id_opt "MODE_ID"
+  let vrr_enabled = Property.create_bool "VRR_ENABLED"
+
+  let fence_ctype = C.Types.fd_opt
+
+  let out_fence_ptr =
+    Property.create "OUT_FENCE_PTR"
+      ~read:(fun _ x ->
+          if x = U64.zero then None
+          else (
+            let fd_ptr =
+              U64.to_int64 x
+              |> Int64.to_nativeint
+              |> Ctypes.ptr_of_raw_address
+              |> Ctypes.from_voidp fence_ctype
+            in
+            Some fd_ptr
+          )
+        )
+      ~write:(fun _ -> function
+          | None -> U64.zero
+          | Some x ->
+            Ctypes.to_voidp x
+            |> Ctypes.raw_address_of_ptr
+            |> Int64.of_nativeint
+            |> U64.of_int64
+        )
 end
 
 module Sub_pixel = struct

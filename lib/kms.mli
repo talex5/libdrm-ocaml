@@ -497,7 +497,7 @@ module Crtc : sig
 
       @param event Requests that drm sends back an event when the page
                    flip is done. The event data will be returned as the
-                   [user_data] argument for {!Event.vblank_handler}.
+                   [user_data] field in {!Event.Vblank.t}.
 
       @param async Requests that the flip happen 'as soon as possible', meaning
                    that it not delay waiting for vblank. This may cause tearing
@@ -544,6 +544,13 @@ module Crtc : sig
   val get_properties : Device.t -> id -> [`Crtc] Properties.Values.t
 
   val active : bool property
+  val mode_id : Blob.id option property
+  val vrr_enabled : bool property
+
+  val out_fence_ptr : Unix.file_descr option Ctypes.ptr option property
+  (** Hint: allocate a {!fence_ctype} to hold the returned FD. *)
+
+  val fence_ctype : Unix.file_descr option Ctypes.typ
 end
 
 module Plane : sig

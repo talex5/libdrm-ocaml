@@ -8,6 +8,17 @@ module Types (F : TYPE) = struct
 
   let fd = view ~read:unix_of_int ~write:int_of_unix int
 
+  let fd_opt =
+    view int
+      ~read:(function
+          | -1 -> None
+          | x -> Some (unix_of_int x)
+        )
+      ~write:(function
+          | None -> -1
+          | Some x -> int_of_unix x
+        )
+
   let id () = view ~read:Id.of_uint32 ~write:Id.to_uint32 uint32_t
   let object_id : [ `Crtc | `Connector | `Encoder | `Mode | `Property | `Fb | `Blob | `Plane ] Id.t typ = id ()
   let property_id : [`Property] Id.t typ = id ()

@@ -31,11 +31,15 @@ let pp_plane fd f (x : K.Plane.t) =
       (Fmt.Dump.option (Fmt.Dump.list pp_format)) in_formats;
   )
 
-let pp_crtc f (x : K.Crtc.t) =
+let pp_crtc fd f (x : K.Crtc.t) =
   match x.mode with
   | None -> Fmt.pf f "%d (inactive)" (x.crtc_id :> int)
   | Some mode ->
-    Fmt.pf f "%a@,Mode: %a" K.Crtc.pp x K.Mode_info.pp mode
+    let props = K.Crtc.get_properties fd x.crtc_id in
+    Fmt.pf f "%a@,Mode: %a@,Props: %a"
+      K.Crtc.pp x
+      K.Mode_info.pp mode
+      K.Properties.Values.pp props
 
 let () =
   match Drm.Device.list ~get_pci_revision:true () with
@@ -62,7 +66,7 @@ let () =
       let planes = K.Plane.list dev |> List.map (K.Plane.get dev) in
       println "@[<v2>Planes:@,%a@]" (Fmt.Dump.list (pp_plane dev)) planes;
       let crtcs = List.map (K.Crtc.get dev) mode_res.crtcs in
-      println "@[<v2>CRTCs:@,%a@]" (Fmt.Dump.list pp_crtc) crtcs;
+      println "@[<v2>CRTCs:@,%a@]" (Fmt.Dump.list (pp_crtc dev)) crtcs;
       let cw = Drm.Cap.(get_exn cursor_width) dev in
       let ch = Drm.Cap.(get_exn cursor_height) dev in
       println "Suggested cursor size: %dx%d" cw ch
