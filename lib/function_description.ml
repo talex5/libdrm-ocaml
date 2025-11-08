@@ -117,7 +117,7 @@ module Functions (F : FOREIGN) = struct
   let drmModeSetPlane = foreign "drmModeSetPlane"
       (fd @-> plane_id @-> crtc_id @-> fb_id @-> flags32 @->
        int_int32 @-> int_int32 @-> int_uint32 @-> int_uint32 @->
-       int_uint32 @-> int_uint32 @-> int_uint32 @-> int_uint32 @->
+       ufixed @-> ufixed @-> ufixed @-> ufixed @->
        returning int)
 
   (* Atomic KMS *)

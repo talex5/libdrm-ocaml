@@ -1193,7 +1193,7 @@ module Plane = struct
       C.Functions.drmModeFreePlane c |> Err.ignore;
       x
 
-  type region = { x : int; y : int; w : int; h : int }
+  type 'a region = { x : 'a; y : 'a; w : 'a; h : 'a }
 
   let set dev id ~crtc ~fb ~src ~dst =
     let flags = U32.zero in     (* These appear to be unused *)

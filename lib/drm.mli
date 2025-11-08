@@ -7,6 +7,7 @@ module Cap = Cap
 module Client_cap = Client_cap
 module Id = Id
 module Buffer = Buffer
+module Ufixed = Ufixed
 module Kms = Kms
 module Fourcc = Fourcc
 module Modifier = Modifier

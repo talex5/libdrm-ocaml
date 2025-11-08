@@ -52,6 +52,8 @@ module Types (F : TYPE) = struct
   let pitch = int_uint32
   let offset = int_uint32
 
+  let ufixed = view ~read:Ufixed.of_bits ~write:Ufixed.to_bits uint32_t
+
   let int_uint64 = view ~read:Unsigned.UInt64.to_int ~write:Unsigned.UInt64.of_int uint64_t
 
   let size = view ~read:Unsigned.UInt64.to_int64 ~write:Unsigned.UInt64.of_int64 uint64_t
