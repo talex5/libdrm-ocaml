@@ -29,6 +29,13 @@ module Types (F : TYPE) = struct
   let encoder_id : [`Encoder] Id.t typ = id ()
   let plane_id : [`Plane] Id.t typ = id ()
   let blob_id : [`Blob] Id.t typ = id ()
+  let lessee_id : [`Lessee] Id.t typ = id ()
+
+  type grant = Grant : [< `Connector | `Crtc | `Plane] Id.t -> grant [@@unboxed]
+
+  let grant = view uint32_t
+      ~read:(fun x -> Grant (Id.of_uint32 x))
+      ~write:(fun (Grant x) -> Id.to_uint32 x)
 
   let id_opt () =
     view uint32_t
@@ -731,6 +738,30 @@ module Types (F : TYPE) = struct
     let user_data = F.field t "user_data" userdata_uint64
     let time_ns = F.field t "time_ns" int64_t
     let sequence = F.field t "sequence" uint64_t
+    let () = F.seal t
+  end
+
+  module LeaseFlags = struct
+    let cloexec = constant "O_CLOEXEC" int
+  end
+
+  module DrmModeLesseeList = struct
+    type mark
+    type ctype = mark Ctypes.structure
+    let t : ctype F.typ = F.structure "drmModeLesseeList"
+
+    let count = F.field t "count" int_uint32
+    let lessees = F.field t "lessees" (array 0 lessee_id)
+    let () = F.seal t
+  end
+
+  module DrmModeObjectList = struct
+    type mark
+    type ctype = mark Ctypes.structure
+    let t : ctype F.typ = F.structure "drmModeObjectList"
+
+    let count = F.field t "count" int_uint32
+    let objects = F.field t "objects" (array 0 grant)
     let () = F.seal t
   end
 end

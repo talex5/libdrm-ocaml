@@ -58,4 +58,5 @@ let () =
     | Some dev ->
       Buffers.test_dumb_buffer dev;
       Events.test_sync dev;
+      Leases.test dev;
       test_blob dev

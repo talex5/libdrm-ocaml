@@ -8,6 +8,8 @@ open Types_generated
 module Functions (F : FOREIGN) = struct
   open F
 
+  let drmFree = foreign "drmFree" (ptr void @-> returning void)
+
   let drmGetDevices2 = foreign "drmGetDevices2" (flags32 @-> ptr_opt (ptr Types_generated.Device.t) @-> int @-> returning int)
   let drmFreeDevices = foreign "drmFreeDevices" (ptr (ptr Types_generated.Device.t) @-> int @-> returning void)
 
@@ -135,4 +137,11 @@ module Functions (F : FOREIGN) = struct
   let drmModeAtomicDuplicate = foreign "drmModeAtomicDuplicate" (AtomicReqPtr.t @-> returning AtomicReqPtr.t_opt)
   let drmModeAtomicMerge = foreign "drmModeAtomicMerge" (AtomicReqPtr.t @-> AtomicReqPtr.t @-> returning int)
   let drmModeAtomicGetCursor = foreign "drmModeAtomicGetCursor" (AtomicReqPtr.t @-> returning int)
+
+  (* Leases *)
+
+  let drmModeCreateLease = foreign "drmModeCreateLease" (fd @-> ptr grant @-> int @-> int @-> ptr lessee_id @-> returning int)
+  let drmModeListLessees = foreign "drmModeListLessees" (fd @-> returning (ptr_opt DrmModeLesseeList.t))
+  let drmModeGetLease = foreign "drmModeGetLease" (fd @-> returning (ptr_opt DrmModeObjectList.t))
+  let drmModeRevokeLease = foreign "drmModeRevokeLease" (fd @-> lessee_id @-> returning int)
 end

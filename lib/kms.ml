@@ -1486,3 +1486,53 @@ module Atomic_req = struct
   let get_cursor t =
     C.Functions.drmModeAtomicGetCursor t |> Err.ignore
 end
+
+module Lease = struct
+  type grant = CT.grant = Grant : [< `Connector | `Crtc | `Plane] Id.t -> grant [@@unboxed]
+
+  type lessee_id = [`Lessee] Id.t
+
+  let create dev objects =
+    let lessee_id = Ctypes.allocate_n CT.lessee_id ~count:1 in
+    let arr = Ctypes.CArray.of_list CT.grant objects in
+    let flags = CT.LeaseFlags.cloexec in
+    let fd = C.Functions.drmModeCreateLease dev arr.astart arr.alength flags lessee_id |> Err.ignore in
+    if fd < 0 then Err.report_neg fd "drmModeCreateLease" ""
+    else (
+      let lessee_id = !@ lessee_id in
+      let fd = Type_description.unix_of_int fd in
+      (lessee_id, fd)
+    )
+
+  let free ptr =
+    C.Functions.drmFree (Ctypes.to_voidp ptr) |> Err.ignore
+
+  let list_lessees dev =
+    match C.Functions.drmModeListLessees dev with
+    | None, errno -> Err.report errno "drmModeListLessees" ""
+    | Some c_ptr, _ ->
+      let c = !@ c_ptr in
+      let module T = CT.DrmModeLesseeList in
+      let alength = Ctypes.getf c T.count in
+      let arr = Ctypes.getf c T.lessees in
+      let ret = Ctypes.CArray.to_list {arr with Ctypes_static.alength } in
+      free c_ptr;
+      ret
+
+  let get_lease dev =
+    match C.Functions.drmModeGetLease dev with
+    | None, errno -> Err.report errno "drmModeGetLease" ""
+    | Some c_ptr, _ ->
+      let c = !@ c_ptr in
+      let module T = CT.DrmModeObjectList in
+      let alength = Ctypes.getf c T.count in
+      let arr = Ctypes.getf c T.objects in
+      let ret = Ctypes.CArray.to_list {arr with Ctypes_static.alength } in
+      free c_ptr;
+      ret
+
+  let revoke dev id =
+    match C.Functions.drmModeRevokeLease dev id |> Err.ignore with
+    | 0 -> ()
+    | code -> Err.report_neg code "drmModeRevokeLease" ""
+end

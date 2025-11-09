@@ -701,3 +701,30 @@ module Atomic_req : sig
   val get_cursor : t -> int
   (** [get_cursor t] is the number of allocated items in [t]. *)
 end
+
+module Lease : sig
+  (** Sharing access with other processes. *)
+
+  type grant = Grant : [< `Connector | `Crtc | `Plane] Id.t -> grant [@@unboxed]
+
+  type lessee_id = [`Lessee] Id.t
+
+  val create : Device.t -> grant list -> lessee_id * Device.t
+  (** [create dev grants] creates a new DRM master device with access to the resources in [grants].
+      Returns a unique ID for the new lessee and their device FD.
+
+      [grants] must reference at least one CRTC, one connector and
+      one plane (if {!Client_cap.universal_planes} is enabled).
+      Alternatively, [grants] can be empty.
+
+      The FD is opened as close-on-exec. *)
+
+  val list_lessees : Device.t -> lessee_id list
+  (** [list_lessees dev] lists the lessee ID of active leases. *)
+
+  val get_lease : Device.t -> grant list
+  (** [get_lease dev] lists the resources being leased to us. *)
+
+  val revoke : Device.t -> lessee_id -> unit
+  (** [revoke dev id] revokes lease [id]. *)
+end
