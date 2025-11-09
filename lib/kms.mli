@@ -370,6 +370,10 @@ module Connector : sig
   val get_properties : Device.t -> id -> [`Connector] Properties.Values.t
 
   val crtc_id : [`Crtc] Id.t option property
+  val edid : Blob.id option property
+  val tile : Blob.id option property
+  val link_status : [`Good | `Bad | `Unknown of Property.raw_value] property
+  val non_desktop : bool property
 end
 
 module Fb : sig

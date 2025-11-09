@@ -1179,6 +1179,10 @@ module Connector = struct
 
   let get_properties dev = Properties.Values.get dev Connector
   let crtc_id = Property.create_id_opt "CRTC_ID"
+  let edid = Property.create_id_opt "EDID"
+  let tile = Property.create_id_opt "TILE"
+  let link_status = Property.create_enum "link-status" ["Good", `Good; "Bad", `Bad]
+  let non_desktop = Property.create_bool "non-desktop"
 end
 
 module Plane = struct
