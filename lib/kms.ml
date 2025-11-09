@@ -369,8 +369,8 @@ module Resources = struct
       ids t.encoders
       t.min_width t.max_width t.min_height t.max_height
 
-  let get fd =
-    match C.Functions.drmModeGetResources fd with
+  let get dev =
+    match C.Functions.drmModeGetResources dev with
     | None, errno -> Err.report errno "drmModeGetResources" ""
     | Some c, _ ->
       let x = of_c (!@ c) in
@@ -401,8 +401,8 @@ module Blob = struct
       Id.pp t.id
       (if (String.length t.data < 10) then t.data else String.sub t.data 0 9 ^ "...")
 
-  let get fd id =
-    match C.Functions.drmModeGetPropertyBlob fd id with
+  let get dev id =
+    match C.Functions.drmModeGetPropertyBlob dev id with
     | Some c, _ ->
       let x = of_c (!@ c) in
       C.Functions.drmModeFreePropertyBlob c |> Err.ignore;
@@ -501,8 +501,8 @@ module Property = struct
       Fmt.pf f "{@[<hv>prop_id = %a;@ name = %S;@ values = %a@]}"
         Id.pp t.prop_id t.name pp_values t.ty
 
-    let get fd id =
-      match C.Functions.drmModeGetProperty fd id with
+    let get dev id =
+      match C.Functions.drmModeGetProperty dev id with
       | None, errno -> Err.report errno "drmModeGetProperty" ""
       | Some c, _ ->
         let x = of_c c in
@@ -783,32 +783,32 @@ module Crtc = struct
     Fmt.pf f "{@[<hv>crtc_id = %a;@ fb_id = %a;@ x,y = %d,%d;@ width,height = %d,%d;@ mode = %a@]}"
       Id.pp t.crtc_id (Fmt.Dump.option Id.pp) t.fb_id t.x t.y t.width t.height (Fmt.Dump.option Mode_info.pp_summary) t.mode
 
-  let get fd id =
-    match C.Functions.drmModeGetCrtc fd id with
+  let get dev id =
+    match C.Functions.drmModeGetCrtc dev id with
     | None, errno -> Err.report errno "drmModeGetCrtc" ""
     | Some c, _ ->
       let x = of_c (!@ c) in
       C.Functions.drmModeFreeCrtc c |> Err.ignore;
       x
 
-  let set fd id ?fb ~pos:(x, y) ~connectors mode =
+  let set dev id ?fb ~pos:(x, y) ~connectors mode =
     let connectors = Ctypes.(CArray.of_list C.Types.connector_id) connectors in
     let mode = Option.map Mode_info.to_c mode in
-    match C.Functions.drmModeSetCrtc fd id fb x y connectors.astart connectors.alength mode with
+    match C.Functions.drmModeSetCrtc dev id fb x y connectors.astart connectors.alength mode with
     | 0, _ -> ()
     | _, errno -> Err.report errno "drmModeSetCrtc" ""
 
-  let page_flip_target fd id ~flags ~user_data ~target fb =
-    match C.Functions.drmModePageFlipTarget fd id fb flags user_data target with
+  let page_flip_target dev id ~flags ~user_data ~target fb =
+    match C.Functions.drmModePageFlipTarget dev id fb flags user_data target with
     | 0, _ -> ()
     | _, errno -> Err.report errno "drmModePageFlipTarget" ""
 
-  let page_flip_no_target fd id ~flags ~user_data fb =
-    match C.Functions.drmModePageFlip fd id fb flags user_data with
+  let page_flip_no_target dev id ~flags ~user_data fb =
+    match C.Functions.drmModePageFlip dev id fb flags user_data with
     | 0, _ -> ()
     | _, errno -> Err.report errno "drmModePageFlip" ""
 
-  let page_flip ?event ?(async=false) ?(target=`None) fd id fb =
+  let page_flip ?event ?(async=false) ?(target=`None) dev id fb =
     let ( ++ ) = U32.logor in
     let flags, user_data =
       match event with
@@ -817,14 +817,14 @@ module Crtc = struct
     in
     let flags = if async then flags ++ CT.PageFlipFlags.async else flags in
     match target with
-    | `None -> page_flip_no_target fd id ~flags ~user_data fb
+    | `None -> page_flip_no_target dev id ~flags ~user_data fb
     | `Absolute target ->
-      page_flip_target fd id ~flags:(flags ++ CT.PageFlipFlags.target_absolute) ~user_data ~target fb
+      page_flip_target dev id ~flags:(flags ++ CT.PageFlipFlags.target_absolute) ~user_data ~target fb
     | `Relative target ->
       let target = U32.of_int target in
-      page_flip_target fd id ~flags:(flags ++ CT.PageFlipFlags.target_relative) ~user_data ~target fb
+      page_flip_target dev id ~flags:(flags ++ CT.PageFlipFlags.target_relative) ~user_data ~target fb
 
-  let queue_sequence ?(next_on_miss=false) ~user_data fd id sequence =
+  let queue_sequence ?(next_on_miss=false) ~user_data dev id sequence =
     let sequence_queued = Ctypes.(allocate uint64_t) U64.zero in
     let ( ++ ) = U32.logor in
     let flags = if next_on_miss then CT.CrtcSequenceFlags.next_on_miss else U32.zero in
@@ -833,25 +833,25 @@ module Crtc = struct
       | `Absolute seq -> flags, seq
       | `Relative seq -> flags ++ CT.CrtcSequenceFlags.relative, U64.of_int seq
     in
-    match C.Functions.drmCrtcQueueSequence fd id flags sequence (Some sequence_queued) user_data with
+    match C.Functions.drmCrtcQueueSequence dev id flags sequence (Some sequence_queued) user_data with
     | 0, _ -> !@ sequence_queued
     | _, errno -> Err.report errno "drmCrtcQueueSequence" ""
 
-  let set_cursor fd id ?hot ~size:(width, height) handle =
+  let set_cursor dev id ?hot ~size:(width, height) handle =
     match hot with
     | None ->
-      begin match C.Functions.drmModeSetCursor fd id handle width height with
+      begin match C.Functions.drmModeSetCursor dev id handle width height with
         | 0, _ -> ()
         | _, errno -> Err.report errno "drmModeSetCursor" ""
       end
     | Some (hot_x, hot_y) ->
-      begin match C.Functions.drmModeSetCursor2 fd id handle width height hot_x hot_y with
+      begin match C.Functions.drmModeSetCursor2 dev id handle width height hot_x hot_y with
         | 0, _ -> ()
         | _, errno -> Err.report errno "drmModeSetCursor2" ""
       end
 
-  let move_cursor fd id (x, y) =
-    match C.Functions.drmModeMoveCursor fd id x y with
+  let move_cursor dev id (x, y) =
+    match C.Functions.drmModeMoveCursor dev id x y with
     | 0, _ -> ()
     | _, errno -> Err.report errno "drmModeMoveCursor" ""
 
@@ -999,8 +999,8 @@ module Encoder = struct
     Fmt.pf f "{@[<hv>encoder_id = %a;@ encoder_type = %a;@ crtc_id = %a;@ possible_crtcs = %#x;@ possible_clones = %#x@]}"
       Id.pp t.encoder_id Type.pp t.encoder_type (Fmt.Dump.option Id.pp) t.crtc_id t.possible_crtcs t.possible_clones
 
-  let get fd id =
-    match C.Functions.drmModeGetEncoder fd id with
+  let get dev id =
+    match C.Functions.drmModeGetEncoder dev id with
     | None, errno -> Err.report errno "drmModeGetEncoder" ""
     | Some c, _ ->
       let x = of_c (!@ c) in
@@ -1161,16 +1161,16 @@ module Connector = struct
       (Fmt.Dump.option Id.pp) t.encoder_id
       (Fmt.Dump.list Id.pp) t.encoders
 
-  let get fd id =
-    match C.Functions.drmModeGetConnector fd id with
+  let get dev id =
+    match C.Functions.drmModeGetConnector dev id with
     | None, errno -> Err.report errno "drmModeGetConnector" ""
     | Some c, _ ->
       let x = of_c (!@ c) in
       C.Functions.drmModeFreeConnector c |> Err.ignore;
       x
 
-  let get_current fd id =
-    match C.Functions.drmModeGetConnectorCurrent fd id with
+  let get_current dev id =
+    match C.Functions.drmModeGetConnectorCurrent dev id with
     | None, errno -> Err.report errno "drmModeGetConnectorCurrent" ""
     | Some c, _ ->
       let x = of_c (!@ c) in
@@ -1228,8 +1228,8 @@ module Plane = struct
       t.x t.y
       t.possible_crtcs
 
-  let list fd =
-    match C.Functions.drmModeGetPlaneResources fd with
+  let list dev =
+    match C.Functions.drmModeGetPlaneResources dev with
     | None, errno -> Err.report errno "drmModeGetPlaneResources" ""
     | Some c, _ ->
       let open CT.DrmModePlaneRes in
@@ -1237,8 +1237,8 @@ module Plane = struct
       C.Functions.drmModeFreePlaneResources c |> Err.ignore;
       t
 
-  let get fd id =
-    match C.Functions.drmModeGetPlane fd id with
+  let get dev id =
+    match C.Functions.drmModeGetPlane dev id with
     | None, errno -> Err.report errno "drmModeGetPlane" ""
     | Some c, _ ->
       let x = of_c (!@ c) in
@@ -1368,15 +1368,15 @@ module Fb = struct
       Id.pp t.fb_id t.width t.height Fourcc.pp t.pixel_format (Fmt.Dump.option Modifier.pp) t.modifier t.interlaced
       (Fmt.Dump.list Plane.pp_opt) t.planes
 
-  let get fd id =
-    match C.Functions.drmModeGetFB2 fd id with
+  let get dev id =
+    match C.Functions.drmModeGetFB2 dev id with
     | None, errno -> Err.report errno "drmModeGetFB2" ""
     | Some c, _ ->
       let x = of_c (!@ c) in
       C.Functions.drmModeFreeFB2 c |> Err.ignore;
       x
 
-  let add ?(interlaced=false) ?modifier fd ~size:(w, h) ~pixel_format ~planes =
+  let add ?(interlaced=false) ?modifier dev ~size:(w, h) ~pixel_format ~planes =
     let handles = Ctypes.(CArray.make C.Types.buffer_id 4) in
     let pitches = Ctypes.(CArray.make C.Types.pitch 4) in
     let offsets = Ctypes.(CArray.make C.Types.offset 4) in
@@ -1390,7 +1390,7 @@ module Fb = struct
         Ctypes.CArray.set offsets i offset;
       );
     let buf_id = Ctypes.(allocate_n C.Types.fb_id ~count:1) in
-    match C.Functions.drmModeAddFB2WithModifiers fd w h pixel_format
+    match C.Functions.drmModeAddFB2WithModifiers dev w h pixel_format
             handles.astart pitches.astart offsets.astart modifiers.astart buf_id flags with
     | 0, _ -> !@ buf_id
     | _, errno -> Err.report errno "drmModeAddFB2WithModifiers" ""
@@ -1400,25 +1400,25 @@ module Fb = struct
     |> List.sort_uniq compare
     |> List.iter (Buffer.close dev)
 
-  let dirty fd id clips =
+  let dirty dev id clips =
     let c_clips = Ctypes.(CArray.make CT.Drm_clip_rect.t (List.length clips)) in
     clips |> List.iteri (fun i rect ->
         Rect.write rect (Ctypes.CArray.get c_clips i)
       );
-    match C.Functions.drmModeDirtyFB fd id c_clips.astart c_clips.alength with
+    match C.Functions.drmModeDirtyFB dev id c_clips.astart c_clips.alength with
     | 0, _ -> ()
     | _, errno -> Err.report errno "drmModeDirtyFB" ""
 
-  let rm fd id =
-    match C.Functions.drmModeRmFB fd id with
+  let rm dev id =
+    match C.Functions.drmModeRmFB dev id with
     | 0, _ -> ()
     | _, errno -> Err.report errno "drmModeRmFB" ""
 
-  let close fd id =
+  let close dev id =
     match C.Functions.drmModeCloseFB with
     | None -> raise (Unix.Unix_error (Unix.ENOSYS, "drmModeCloseFB", "Need libdrm >= 2.4.118"))
     | Some drmModeCloseFB ->
-      match drmModeCloseFB fd id with
+      match drmModeCloseFB dev id with
       | 0, _ -> ()
       | _, errno -> Err.report errno "drmModeCloseFB" ""
 end

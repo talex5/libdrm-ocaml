@@ -3,9 +3,9 @@ module U64 = Unsigned.UInt64
 
 let println fmt = Fmt.pr (fmt ^^ "@.")
 
-let pp_connector fd f (x : K.Connector.t) =
+let pp_connector dev f (x : K.Connector.t) =
   if x.connection = Connected then (
-    let props = K.Properties.Values.of_raw fd Connector x.connector_id x.props in
+    let props = K.Properties.Values.of_raw dev Connector x.connector_id x.props in
     Fmt.pf f "%a@,%a"
       K.Connector.pp x
       K.Properties.Values.pp props
@@ -20,22 +20,22 @@ let pp_format f (fmt, modifier) =
     Drm.Fourcc.pp fmt
     Drm.Modifier.pp modifier
 
-let pp_plane fd f (x : K.Plane.t) =
+let pp_plane dev f (x : K.Plane.t) =
   if x.crtc_id = None then Fmt.pf f "%d (unused)" (x.plane_id :> int)
   else (
-    let props = K.Plane.get_properties fd x.plane_id in
-    let in_formats = K.Properties.Values.get_value props (K.Plane.in_formats fd) in
+    let props = K.Plane.get_properties dev x.plane_id in
+    let in_formats = K.Properties.Values.get_value props (K.Plane.in_formats dev) in
     Fmt.pf f "%a@,%a@,IN_FORMATS: %a"
       K.Plane.pp x
       K.Properties.Values.pp props
       (Fmt.Dump.option (Fmt.Dump.list pp_format)) in_formats;
   )
 
-let pp_crtc fd f (x : K.Crtc.t) =
+let pp_crtc dev f (x : K.Crtc.t) =
   match x.mode with
   | None -> Fmt.pf f "%d (inactive)" (x.crtc_id :> int)
   | Some mode ->
-    let props = K.Crtc.get_properties fd x.crtc_id in
+    let props = K.Crtc.get_properties dev x.crtc_id in
     Fmt.pf f "%a@,Mode: %a@,Props: %a"
       K.Crtc.pp x
       K.Mode_info.pp mode

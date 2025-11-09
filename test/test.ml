@@ -4,10 +4,10 @@ let open_device (d : Drm.Device.Info.t) =
   match d.primary_node with
   | None -> None
   | Some primary ->
-    let fd = Unix.openfile primary [O_RDWR; O_CLOEXEC] 0 in
-    if Drm.Device.is_kms fd then Some fd
+    let dev = Unix.openfile primary [O_RDWR; O_CLOEXEC] 0 in
+    if Drm.Device.is_kms dev then Some dev
     else (
-      Unix.close fd;
+      Unix.close dev;
       None
     )
 

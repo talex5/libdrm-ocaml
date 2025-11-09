@@ -257,8 +257,8 @@ module Version = struct
       t.version_major t.version_minor t.version_patchlevel
       t.name t.date t.desc
 
-  let get fd =
-    match C.Functions.drmGetVersion fd with
+  let get dev =
+    match C.Functions.drmGetVersion dev with
     | None, errno -> Err.report errno "drmGetVersion" ""
     | Some c, _ ->
       let x = of_c (!@ c) in

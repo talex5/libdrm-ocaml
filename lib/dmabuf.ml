@@ -3,8 +3,8 @@ type sync_file = Unix.file_descr
 
 let ( !@ ) = Ctypes.( !@ )
 
-let drm_ioctl fd op arg =
-  match C.Functions.drmIoctl fd op (Ctypes.to_voidp (Ctypes.addr arg)) with
+let drm_ioctl dev op arg =
+  match C.Functions.drmIoctl dev op (Ctypes.to_voidp (Ctypes.addr arg)) with
   | 0, _ -> ()
   | _, errno -> Err.report errno "drmIoctl" ""
 
