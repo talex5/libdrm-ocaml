@@ -141,11 +141,12 @@ module Blob : sig
   (** An untyped string of bytes. *)
 
   type id = [`Blob] Id.t
-  type t = { id : id; data : string }
 
-  val get : Device.t -> id -> t option
+  val get : Device.t -> id -> string option
+  val get_exn : Device.t -> id -> string
 
-  val pp : t Fmt.t
+  val create : Device.t -> string -> id
+  val destroy : Device.t -> id -> unit
 end
 
 module Property : sig

@@ -60,6 +60,8 @@ module Functions (F : FOREIGN) = struct
 
   let drmModeGetPropertyBlob = foreign "drmModeGetPropertyBlob" (fd @-> blob_id @-> returning (ptr_opt DrmModePropertyBlob.t))
   let drmModeFreePropertyBlob = foreign "drmModeFreePropertyBlob" (ptr DrmModePropertyBlob.t @-> returning void)
+  let drmModeCreatePropertyBlob = foreign "drmModeCreatePropertyBlob" (fd @-> string @-> size_t @-> ptr blob_id @-> returning int)
+  let drmModeDestroyPropertyBlob = foreign "drmModeDestroyPropertyBlob" (fd @-> blob_id @-> returning int)
 
   let drmGetCap = foreign "drmGetCap" (fd @-> uint64_t @-> ptr int_uint64 @-> returning int)
 

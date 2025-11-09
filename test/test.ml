@@ -1,3 +1,5 @@
+module K = Drm.Kms
+
 let println fmt = Fmt.pr (fmt ^^ "@.")
 
 let open_device (d : Drm.Device.Info.t) =
@@ -38,6 +40,12 @@ let test_fixed () =
   assert (T.to_float (T.of_int 0xffff) = 0xffff.);
   ()
 
+let test_blob dev =
+  let id = K.Blob.create dev "hello" in
+  assert (K.Blob.get_exn dev id = "hello");
+  K.Blob.destroy dev id;
+  assert (K.Blob.get dev id = None)
+
 let () =
   test_fixed ();
   match Drm.Device.list ~get_pci_revision:true () with
@@ -50,3 +58,4 @@ let () =
     | Some dev ->
       Buffers.test_dumb_buffer dev;
       Events.test_sync dev;
+      test_blob dev

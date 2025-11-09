@@ -383,23 +383,10 @@ module Blob = struct
 
   type id = [`Blob] Id.t
 
-  type t = {
-    id : id;
-    data : string;
-  }
-
   let of_c c =
     let ptr = Ctypes.getf c data |> Ctypes.(from_voidp char) in
     let length = Ctypes.getf c length in
-    {
-      id = Ctypes.getf c id;
-      data = Ctypes.string_from_ptr ptr ~length;
-    }
-
-  let pp f t =
-    Fmt.pf f "{@[<hv>id = %a;@ data = %S@]}"
-      Id.pp t.id
-      (if (String.length t.data < 10) then t.data else String.sub t.data 0 9 ^ "...")
+    Ctypes.string_from_ptr ptr ~length
 
   let get dev id =
     match C.Functions.drmModeGetPropertyBlob dev id with
@@ -410,7 +397,24 @@ module Blob = struct
     | None, errno ->
       match Err.error_of_errno errno with
       | ENOENT -> None
-      | code -> raise (Unix.Unix_error (code, "drmModeFreePropertyBlob", ""))
+      | code -> raise (Unix.Unix_error (code, "drmModeGetPropertyBlob", Id.to_string id))
+
+  let get_exn dev id =
+    match get dev id with
+    | Some x -> x
+    | None -> raise (Unix.Unix_error (ENOENT, "drmModeGetPropertyBlob", Id.to_string id))
+
+  let create dev data =
+    let id_out = Ctypes.allocate_n C.Types.blob_id ~count:1 in
+    let len = Unsigned.Size_t.of_int (String.length data) in
+    match C.Functions.drmModeCreatePropertyBlob dev data len id_out with
+    | 0, _ -> !@ id_out
+    | _, errno -> Err.report errno "drmModeCreatePropertyBlob" ""
+
+  let destroy dev id =
+    match C.Functions.drmModeDestroyPropertyBlob dev id with
+    | 0, _ -> ()
+    | _, errno -> Err.report errno "drmModeDestroyPropertyBlob" ""
 end
 
 module Property = struct

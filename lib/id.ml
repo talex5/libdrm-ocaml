@@ -25,6 +25,8 @@ let of_uint64_opt x =
   if x = Unsigned.UInt64.zero then None
   else Some (of_uint64 x)
 
+let to_string = string_of_int
+
 let pp = Fmt.int
 
 let compare = Int.compare
