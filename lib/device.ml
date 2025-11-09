@@ -269,6 +269,16 @@ end
 let is_kms t = C.Functions.drmIsKMS t |> Err.ignore
 let is_master t = C.Functions.drmIsMaster t |> Err.ignore
 
+let set_master t =
+  match C.Functions.drmSetMaster t with
+  | 0, _ -> ()
+  | _, errno -> Err.report errno "drmSetMaster" ""
+
+let drop_master t =
+  match C.Functions.drmDropMaster t with
+  | 0, _ -> ()
+  | _, errno -> Err.report errno "drmDropMaster" ""
+
 let check_modesetting_supported busid =
   match C.Functions.drmCheckModesettingSupported busid |> Err.ignore with
   | 0 -> Ok ()

@@ -12,7 +12,11 @@ module Functions (F : FOREIGN) = struct
   let drmFreeDevices = foreign "drmFreeDevices" (ptr (ptr Types_generated.Device.t) @-> int @-> returning void)
 
   let drmIsKMS = foreign "drmIsKMS" (fd @-> returning bool)
+
   let drmIsMaster = foreign "drmIsMaster" (fd @-> returning bool)
+  let drmSetMaster = foreign "drmSetMaster" (fd @-> returning int)
+  let drmDropMaster = foreign "drmDropMaster" (fd @-> returning int)
+
   let drmGetVersion = foreign "drmGetVersion" (fd @-> returning (ptr_opt DrmVersion.t))
   let drmFreeVersion = foreign "drmFreeVersion" (ptr DrmVersion.t @-> returning void)
   let drmSetClientCap = foreign "drmSetClientCap" (fd @-> Types_generated.Client_cap.t @-> uint64_t @-> returning int)
