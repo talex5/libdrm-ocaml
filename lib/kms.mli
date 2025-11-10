@@ -33,6 +33,17 @@ module Rect : sig
   val pp : Format.formatter -> t -> unit
 end
 
+module Blob : sig
+  (** An untyped string of bytes. *)
+
+  type id = [`Blob] Id.t
+
+  val get : Device.t -> id -> string
+
+  val create : Device.t -> string -> id
+  val destroy : Device.t -> id -> unit
+end
+
 module Mode_info : sig
   (** Screen mode resolution and timing information. *)
 
@@ -115,6 +126,9 @@ module Mode_info : sig
     name : string;
   }
 
+  val get : Device.t -> Blob.id -> t
+  (** For use with {!Crtc.mode_id}. *)
+
   val vrefresh : t -> float
 
   val pp : t Fmt.t [@@ocaml.toplevel_printer]
@@ -135,18 +149,6 @@ module Sub_pixel : sig
     | None
 
   val pp : t Fmt.t
-end
-
-module Blob : sig
-  (** An untyped string of bytes. *)
-
-  type id = [`Blob] Id.t
-
-  val get : Device.t -> id -> string option
-  val get_exn : Device.t -> id -> string
-
-  val create : Device.t -> string -> id
-  val destroy : Device.t -> id -> unit
 end
 
 module Property : sig
@@ -549,7 +551,10 @@ module Crtc : sig
   val get_properties : Device.t -> id -> [`Crtc] Properties.Values.t
 
   val active : bool property
+
   val mode_id : Blob.id option property
+  (** Use {!Mode_info.get} to load the blob data. *)
+
   val vrr_enabled : bool property
 
   val out_fence_ptr : Unix.file_descr option Ctypes.ptr option property

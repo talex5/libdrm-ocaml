@@ -42,9 +42,10 @@ let test_fixed () =
 
 let test_blob dev =
   let id = K.Blob.create dev "hello" in
-  assert (K.Blob.get_exn dev id = "hello");
+  assert (K.Blob.get dev id = "hello");
   K.Blob.destroy dev id;
-  assert (K.Blob.get dev id = None)
+  try ignore (K.Blob.get dev id); assert false
+  with Unix.Unix_error (ENOENT, _, _) -> ()
 
 let () =
   test_fixed ();

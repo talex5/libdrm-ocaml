@@ -93,6 +93,38 @@ module Rect = struct
       t.x1 t.y1 t.x2 t.y2
 end
 
+module Blob = struct
+  open CT.DrmModePropertyBlob
+
+  type id = [`Blob] Id.t
+
+  let get_with p dev id =
+    match C.Functions.drmModeGetPropertyBlob dev id with
+    | Some ptr, _ ->
+      let c = !@ ptr in
+      let astart = Ctypes.getf c data |> Ctypes.(from_voidp char) in
+      let alength = Ctypes.getf c length in
+      let data = Ctypes.CArray.from_ptr astart alength in
+      let x = p data in
+      C.Functions.drmModeFreePropertyBlob ptr |> Err.ignore;
+      x
+    | None, errno -> Err.report errno "drmModeGetPropertyBlob" (Id.to_string id)
+
+  let get = get_with (fun { astart; alength } -> Ctypes.string_from_ptr astart ~length:alength)
+
+  let create dev data =
+    let id_out = Ctypes.allocate_n C.Types.blob_id ~count:1 in
+    let len = Unsigned.Size_t.of_int (String.length data) in
+    match C.Functions.drmModeCreatePropertyBlob dev data len id_out with
+    | 0, _ -> !@ id_out
+    | _, errno -> Err.report errno "drmModeCreatePropertyBlob" ""
+
+  let destroy dev id =
+    match C.Functions.drmModeDestroyPropertyBlob dev id with
+    | 0, _ -> ()
+    | _, errno -> Err.report errno "drmModeDestroyPropertyBlob" ""
+end
+
 module Mode_info = struct
   open CT.DrmModeModeInfo
 
@@ -284,6 +316,11 @@ module Mode_info = struct
       name = string_of_carray (Ctypes.getf c name);
     }
 
+  let get =
+    Blob.get_with @@ fun arr ->
+    assert (arr.alength >= Ctypes.sizeof CT.DrmModeModeInfo.t);
+    of_c !@ (Ctypes.to_voidp arr.astart |> Ctypes.from_voidp CT.DrmModeModeInfo.t)
+
   let write t c =
     let module T = CT.DrmModeModeInfo in
     let { clock; hdisplay; hsync_start; hsync_end; htotal; hskew; vdisplay;
@@ -376,45 +413,6 @@ module Resources = struct
       let x = of_c (!@ c) in
       C.Functions.drmModeFreeResources c |> Err.ignore;
       x
-end
-
-module Blob = struct
-  open CT.DrmModePropertyBlob
-
-  type id = [`Blob] Id.t
-
-  let of_c c =
-    let ptr = Ctypes.getf c data |> Ctypes.(from_voidp char) in
-    let length = Ctypes.getf c length in
-    Ctypes.string_from_ptr ptr ~length
-
-  let get dev id =
-    match C.Functions.drmModeGetPropertyBlob dev id with
-    | Some c, _ ->
-      let x = of_c (!@ c) in
-      C.Functions.drmModeFreePropertyBlob c |> Err.ignore;
-      Some x
-    | None, errno ->
-      match Err.error_of_errno errno with
-      | ENOENT -> None
-      | code -> raise (Unix.Unix_error (code, "drmModeGetPropertyBlob", Id.to_string id))
-
-  let get_exn dev id =
-    match get dev id with
-    | Some x -> x
-    | None -> raise (Unix.Unix_error (ENOENT, "drmModeGetPropertyBlob", Id.to_string id))
-
-  let create dev data =
-    let id_out = Ctypes.allocate_n C.Types.blob_id ~count:1 in
-    let len = Unsigned.Size_t.of_int (String.length data) in
-    match C.Functions.drmModeCreatePropertyBlob dev data len id_out with
-    | 0, _ -> !@ id_out
-    | _, errno -> Err.report errno "drmModeCreatePropertyBlob" ""
-
-  let destroy dev id =
-    match C.Functions.drmModeDestroyPropertyBlob dev id with
-    | 0, _ -> ()
-    | _, errno -> Err.report errno "drmModeDestroyPropertyBlob" ""
 end
 
 module Property = struct
