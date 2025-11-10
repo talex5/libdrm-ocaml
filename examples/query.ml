@@ -24,7 +24,8 @@ let pp_plane dev f (x : K.Plane.t) =
   if x.crtc_id = None then Fmt.pf f "%d (unused)" (x.plane_id :> int)
   else (
     let props = K.Plane.get_properties dev x.plane_id in
-    let in_formats = K.Properties.Values.get_value props (K.Plane.in_formats dev) in
+    let in_formats_id = K.Properties.Values.get_value props K.Plane.in_formats in
+    let in_formats = Option.map (K.Plane.get_in_formats dev) in_formats_id in
     Fmt.pf f "%a@,%a@,IN_FORMATS: %a"
       K.Plane.pp x
       K.Properties.Values.pp props

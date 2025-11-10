@@ -98,19 +98,22 @@ module Blob = struct
 
   type id = [`Blob] Id.t
 
-  let get_with p dev id =
+  let get_raw p dev id =
     match C.Functions.drmModeGetPropertyBlob dev id with
-    | Some ptr, _ ->
-      let c = !@ ptr in
-      let astart = Ctypes.getf c data |> Ctypes.(from_voidp char) in
-      let alength = Ctypes.getf c length in
-      let data = Ctypes.CArray.from_ptr astart alength in
-      let x = p data in
-      C.Functions.drmModeFreePropertyBlob ptr |> Err.ignore;
-      x
     | None, errno -> Err.report errno "drmModeGetPropertyBlob" (Id.to_string id)
+    | Some ptr, _ ->
+      Fun.protect (fun () -> p ptr)
+        ~finally:(fun () -> C.Functions.drmModeFreePropertyBlob ptr |> Err.ignore)
 
-  let get = get_with (fun { astart; alength } -> Ctypes.string_from_ptr astart ~length:alength)
+  let get_as_ptr typ p =
+    get_raw (fun c ->
+        let c = !@ c in
+        let ptr = Ctypes.getf c data in
+        let length = Ctypes.getf c length in
+        p (Ctypes.from_voidp typ ptr) ~length
+      )
+
+  let get = get_as_ptr Ctypes.char Ctypes.string_from_ptr
 
   let create dev data =
     let id_out = Ctypes.allocate_n C.Types.blob_id ~count:1 in
@@ -317,9 +320,9 @@ module Mode_info = struct
     }
 
   let get =
-    Blob.get_with @@ fun arr ->
-    assert (arr.alength >= Ctypes.sizeof CT.DrmModeModeInfo.t);
-    of_c !@ (Ctypes.to_voidp arr.astart |> Ctypes.from_voidp CT.DrmModeModeInfo.t)
+    Blob.get_as_ptr CT.DrmModeModeInfo.t @@ fun ptr ~length ->
+    assert (length >= Ctypes.sizeof CT.DrmModeModeInfo.t);
+    of_c !@ ptr
 
   let write t c =
     let module T = CT.DrmModeModeInfo in
@@ -1278,28 +1281,21 @@ module Plane = struct
 
   let in_fence_fd = Property.create_fd_opt "IN_FENCE_FD"
 
-  let get_in_formats dev blob_id =
-    match C.Functions.drmModeGetPropertyBlob dev blob_id with
-    | None, errno -> Err.report errno "drmModeGetPropertyBlob" "IN_FORMATS"
-    | Some blob, _ ->
-      let finally () = C.Functions.drmModeFreePropertyBlob blob |> Err.ignore in
-      Fun.protect ~finally @@ fun () ->
-      let module I = CT.DrmModeFormatModifierIterator in
-      let iter = Ctypes.allocate_n I.t ~count:1 in
-      let rec aux () =
-        let ok = C.Functions.drmModeFormatModifierBlobIterNext blob iter |> Err.ignore in
-        if ok then (
-          let fmt = Ctypes.getf (!@ iter) I.fmt in
-          let modifier = Ctypes.getf (!@ iter) I.modifier in
-          (fmt, modifier) :: aux ()
-        ) else []
-      in
-      aux ()
+  let get_in_formats =
+    Blob.get_raw @@ fun blob ->
+    let module I = CT.DrmModeFormatModifierIterator in
+    let iter = Ctypes.allocate_n I.t ~count:1 in
+    let rec aux () =
+      let ok = C.Functions.drmModeFormatModifierBlobIterNext blob iter |> Err.ignore in
+      if ok then (
+        let fmt = Ctypes.getf (!@ iter) I.fmt in
+        let modifier = Ctypes.getf (!@ iter) I.modifier in
+        (fmt, modifier) :: aux ()
+      ) else []
+    in
+    aux ()
 
-  let in_formats dev =
-    Property.create "IN_FORMATS"
-      ~write:(fun _ _ -> failwith "IN_FORMATS is read-only")
-      ~read:(fun _ blob_id -> get_in_formats dev (Id.of_uint64 blob_id))
+  let in_formats = Property.create_id "IN_FORMATS"
 
   let get_properties dev = Properties.Values.get dev Plane
 end

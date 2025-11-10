@@ -615,7 +615,10 @@ module Plane : sig
   val src_w : Ufixed.t property
   val src_h : Ufixed.t property
 
-  val in_formats : Device.t -> (Fourcc.t * Modifier.t) list property
+  val get_in_formats : Device.t -> Blob.id -> (Fourcc.t * Modifier.t) list
+
+  val in_formats : Blob.id property
+  (** Note: get the format table with {!get_in_formats}. *)
 
   val in_fence_fd : Unix.file_descr option property
 end
