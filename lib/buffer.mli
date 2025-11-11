@@ -38,7 +38,10 @@ module Dumb : sig
 
   val create : Device.t -> bpp:int -> (int * int) -> t
   (** [create dev ~bpp (width, height)] allocates memory for a
-      [width, height] buffer with [bpp] bits per pixel. *)
+      [width, height] buffer with [bpp] bits per pixel.
+
+      Note that dumb buffers typically cannot be used as cursors
+      (until we have "DRM_MODE_DUMB_CURSOR" support). *)
 
   val map :
     Device.t -> t -> ('a, 'b) Bigarray.kind ->
