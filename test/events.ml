@@ -10,9 +10,12 @@ let test_sync dev =
   match List.find_opt active_crtc crtcs with
   | None -> println "No active CRTCs; skipping event test"
   | Some crtc ->
-    let seq = K.Crtc.queue_sequence dev crtc.crtc_id (`Relative 1) ~user_data:42n in
-    println "Queued event for sequence %a" Unsigned.UInt64.pp seq;
-    let buffer = Drm.Event.create_buffer () in
-    let got = Unix.read_bigarray dev buffer 0 (Bigarray.Array1.dim buffer) in
-    let events = Drm.Event.parse buffer got in
-    println "Events: %a" (Fmt.Dump.list Drm.Event.pp) events
+    match K.Crtc.queue_sequence dev crtc.crtc_id (`Relative 1) ~user_data:42n with
+    | exception Unix.Unix_error (EOPNOTSUPP, _, _) ->
+      println "queue_sequence not supported; skipping test"
+    | seq ->
+      println "Queued event for sequence %a" Unsigned.UInt64.pp seq;
+      let buffer = Drm.Event.create_buffer () in
+      let got = Unix.read_bigarray dev buffer 0 (Bigarray.Array1.dim buffer) in
+      let events = Drm.Event.parse buffer got in
+      println "Events: %a" (Fmt.Dump.list Drm.Event.pp) events
