@@ -36,7 +36,7 @@ val create_buffer : unit -> buffer
 (** [create_buffer ()] creates a buffer of a suitable size. *)
 
 val parse : buffer -> int -> t list
-(** [parse buffer len cb] parses the events in the first [n] bytes of [buffer].
+(** [parse buffer len cb] parses the events in the first [len] bytes of [buffer].
 
     Hint: you can use [let len = Unix.read_bigarray dev buffer 0 (Bigarray.Array1.dim buffer)] to
     read events into the buffer. The buffer must contain only complete events,

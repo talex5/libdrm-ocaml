@@ -1,5 +1,6 @@
+(** Unsigned 16.16 fixed-point values. *)
+
 type t = private Unsigned.UInt32.t
-(** A 16.16 fixed-point value. *)
 
 val of_int : int -> t
 
