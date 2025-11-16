@@ -1,5 +1,4 @@
 module K = Drm.Kms
-module U64 = Unsigned.UInt64
 
 let println fmt = Fmt.pr (fmt ^^ "@.")
 
