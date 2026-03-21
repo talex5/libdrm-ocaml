@@ -102,7 +102,7 @@ module Info = struct
     }
     let of_c c =
       let rec collect ptr =
-        if Ctypes.is_null ptr then []
+        if Ctypes.is_null (!@ ptr) then []
         else (
           let v = Ctypes.(coerce (ptr char) string) (!@ ptr) in
           v :: collect (ptr +@ 1)
