@@ -1378,14 +1378,15 @@ module Fb = struct
     let handles = Ctypes.(CArray.make C.Types.buffer_id 4) in
     let pitches = Ctypes.(CArray.make C.Types.pitch 4) in
     let offsets = Ctypes.(CArray.make C.Types.offset 4) in
+    let modifiers = Ctypes.(CArray.make C.Types.drm_modifier 4) in
     let flags = if interlaced then CT.FbFlags.interlaced else U32.zero in
     let flags = if modifier = None then flags else U32.logor flags CT.FbFlags.modifiers in
     let modifier = Option.value modifier ~default:Modifier.linear in
-    let modifiers = Ctypes.(CArray.make C.Types.drm_modifier 4 ~initial:modifier) in
     planes |> List.iteri (fun i { Plane.handle; pitch; offset } ->
         Ctypes.CArray.set handles i handle;
         Ctypes.CArray.set pitches i pitch;
         Ctypes.CArray.set offsets i offset;
+        Ctypes.CArray.set modifiers i modifier;
       );
     let buf_id = Ctypes.(allocate_n C.Types.fb_id ~count:1) in
     match C.Functions.drmModeAddFB2WithModifiers dev w h pixel_format
