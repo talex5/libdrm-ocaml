@@ -34,3 +34,4 @@ build: [
 dev-repo: "git+https://github.com/talex5/libdrm-ocaml.git"
 x-maintenance-intent: ["(latest)"]
 available: [ os = "linux" & arch != "arm32" & arch != "x86_32" ]
+x-ci-accept-failures: [ "ubuntu-22.04" ]

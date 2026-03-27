@@ -2,7 +2,7 @@
 
 ocamlPackages.buildDunePackage {
   pname = "libdrm";
-  version = "0.1";
+  version = "1.1";
 
   src = ./.;
 
